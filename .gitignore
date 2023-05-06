@@ -2,3 +2,6 @@ results/
 *.gif
 *.png
 lbm
+*gmon*
+prof*
+.gitignore

@@ -1,12 +1,14 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <immintrin.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <time.h>
+#include <tmmintrin.h>
 
 #define NSPEEDS 9
 #define NUM_THREADS 28

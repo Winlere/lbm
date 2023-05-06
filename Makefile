@@ -1,6 +1,6 @@
 # Makefile
 CC = gcc
-CFLAGS = -std=c99 -Wall -O3
+CFLAGS = -std=c99 -Wall -O3 -march=broadwell
 LIBS = -lm -fopenmp
 SRC = main.c d2q9_bgk.c calc.c utils.c 
 EXE=lbm

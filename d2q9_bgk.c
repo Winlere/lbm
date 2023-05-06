@@ -37,7 +37,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
 
-// #pragma omp parallel for schedule(static) collapse(2)
+#pragma omp parallel for default(none) shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2)
   for (int jj = 0; jj < params.ny; jj++)
   {
   for (int ii = 0; ii < params.nx; ii++)  
@@ -135,6 +135,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
 int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles) {
 
   /* loop over the cells in the grid */
+#pragma omp parallel for default(none) shared(params, cells, tmp_cells, obstacles)
   for (int jj = 0; jj < params.ny; jj++)
   {
     for (int ii = 0; ii < params.nx; ii++)
@@ -164,6 +165,7 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
 */
 int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
   /* loop over _all_ cells */
+#pragma omp parallel for default(none) shared(params, cells, tmp_cells)
   for (int jj = 0; jj < params.ny; jj++)
   {
     for (int ii = 0; ii < params.nx; ii++)

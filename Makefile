@@ -10,6 +10,10 @@ OBSTACLES_DIR=./data/obstacles
 RESULTS_DIR=./results
 SCRIPTS_DIR=./scripts
 
+ifeq ($(LBM_PERF), 1)
+	CFLAGS += -pg -g
+endif
+
 .PHONY: all visual check clean
 
 all: clean

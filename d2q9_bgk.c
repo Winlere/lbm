@@ -85,19 +85,20 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
         /* velocity squared */
         float u_sq = u_x * u_x + u_y * u_y;
 
+        tmp_cells[ii + jj * params.nx].speeds[0] =
+            cells[ii + jj * params.nx].speeds[0] +
+            params.omega * (w0 * local_density * (1.f - u_sq / (2.f * c_sq)) -
+                            cells[ii + jj * params.nx].speeds[0]);
+
         /* directional velocity components */
-        float u0 = 0;
         __m256 u_vec = _mm256_add_ps(
             _mm256_setr_ps(u_x, u_y, -u_x, -u_y, u_x, -u_x, -u_x, u_x),
             _mm256_setr_ps(0, 0, 0, 0, u_y, u_y, -u_y, -u_y));
 
         /* equilibrium densities */
-
-        float d_equ0 = w0 * local_density *
-                       (1.f + u0 / c_sq + (u0 * u0) / (2.f * c_sq * c_sq) -
-                        u_sq / (2.f * c_sq));
-
         __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
+        __m256 cells_vec =
+            _mm256_loadu_ps(cells[ii + jj * params.nx].speeds + 1);
         __m256 d_equ_vec = _mm256_mul_ps(
             _mm256_mul_ps(_mm256_set1_ps(local_density), w_vec),
             _mm256_add_ps(
@@ -113,14 +114,6 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
                         _mm256_div_ps(_mm256_set1_ps(-u_sq),
                                       _mm256_mul_ps(_mm256_set1_ps(2.f),
                                                     _mm256_set1_ps(c_sq)))))));
-
-        /* relaxation step */
-        tmp_cells[ii + jj * params.nx].speeds[0] =
-            cells[ii + jj * params.nx].speeds[0] +
-            params.omega * (d_equ0 - cells[ii + jj * params.nx].speeds[0]);
-
-        __m256 cells_vec =
-            _mm256_loadu_ps(cells[ii + jj * params.nx].speeds + 1);
 
         _mm256_storeu_ps(
             tmp_cells[ii + jj * params.nx].speeds + 1,

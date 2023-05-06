@@ -7,6 +7,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <immintrin.h>
 
 #define NSPEEDS         9
 #define NUM_THREADS     28

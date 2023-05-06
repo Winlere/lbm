@@ -37,57 +37,57 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
 
-#pragma omp parallel for default(none) shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2)
+#pragma omp parallel for
   for (int jj = 0; jj < params.ny; jj++)
   {
   for (int ii = 0; ii < params.nx; ii++)  
     {
       if (!obstacles[ii + jj*params.nx]){
         /* compute local density total */
-        float local_density = cells[ii + jj*params.nx].speeds[0];
+        float local_density = 0;
 
-        // for (int kk = 0; kk < NSPEEDS; kk++)
-        // {
-        //   local_density += cells[ii + jj*params.nx].speeds[kk]; 
-        // }
-        __m256 ymm = _mm256_loadu_ps(cells[ii + jj*params.nx].speeds + 1);
-        __m256 ymm2 = _mm256_permute2f128_ps(ymm , ymm , 1);
-        ymm = _mm256_add_ps(ymm, ymm2);
-        ymm = _mm256_hadd_ps(ymm, ymm);
-        ymm = _mm256_hadd_ps(ymm, ymm);
-        local_density = _mm256_cvtss_f32(ymm) + local_density;
+        for (int kk = 0; kk < NSPEEDS; kk++)
+        {
+          local_density += cells[ii + jj*params.nx].speeds[kk]; 
+        }
+        // __m256 ymm = _mm256_loadu_ps(cells[ii + jj*params.nx].speeds + 1);
+        // __m256 ymm2 = _mm256_permute2f128_ps(ymm , ymm , 1);
+        // ymm = _mm256_add_ps(ymm, ymm2);
+        // ymm = _mm256_hadd_ps(ymm, ymm);
+        // ymm = _mm256_hadd_ps(ymm, ymm);
+        // local_density = _mm256_cvtss_f32(ymm) + local_density;
         /* compute x velocity component */
-        // float u_x = (cells[ii + jj*params.nx].speeds[1]
-        //               + cells[ii + jj*params.nx].speeds[5]
-        //               + cells[ii + jj*params.nx].speeds[8]
-        //               - (cells[ii + jj*params.nx].speeds[3]
-        //                  + cells[ii + jj*params.nx].speeds[6]
-        //                  + cells[ii + jj*params.nx].speeds[7]))
-        //              / local_density;
+        float u_x = (cells[ii + jj*params.nx].speeds[1]
+                      + cells[ii + jj*params.nx].speeds[5]
+                      + cells[ii + jj*params.nx].speeds[8]
+                      - (cells[ii + jj*params.nx].speeds[3]
+                         + cells[ii + jj*params.nx].speeds[6]
+                         + cells[ii + jj*params.nx].speeds[7]))
+                     / local_density;
         const __m256 cells_vec = _mm256_loadu_ps(cells[ii + jj*params.nx].speeds + 1);
-        const __m256 cells_w = _mm256_setr_ps(1,0,-1,0,1,-1,-1,1);
-        ymm = _mm256_mul_ps(cells_vec, cells_w);
-        ymm2 = _mm256_permute2f128_ps(ymm , ymm , 1);
-        ymm = _mm256_add_ps(ymm, ymm2);
-        ymm = _mm256_hadd_ps(ymm, ymm);
-        ymm = _mm256_hadd_ps(ymm, ymm);
-        float u_x = _mm256_cvtss_f32(ymm) / local_density;
+        // const __m256 cells_w = _mm256_setr_ps(1,0,-1,0,1,-1,-1,1);
+        // ymm = _mm256_mul_ps(cells_vec, cells_w);
+        // ymm2 = _mm256_permute2f128_ps(ymm , ymm , 1);
+        // ymm = _mm256_add_ps(ymm, ymm2);
+        // ymm = _mm256_hadd_ps(ymm, ymm);
+        // ymm = _mm256_hadd_ps(ymm, ymm);
+        // float u_x = _mm256_cvtss_f32(ymm) / local_density;
 
         /* compute y velocity component */
-        // float u_y = (cells[ii + jj*params.nx].speeds[2]
-        //               + cells[ii + jj*params.nx].speeds[5]
-        //               + cells[ii + jj*params.nx].speeds[6]
-        //               - (cells[ii + jj*params.nx].speeds[4]
-        //                  + cells[ii + jj*params.nx].speeds[7]
-        //                  + cells[ii + jj*params.nx].speeds[8]))
-        //              / local_density;
-        const __m256 cells_w2 = _mm256_setr_ps(0,1,0,-1,1,1,-1,-1);
-        ymm = _mm256_mul_ps(cells_vec, cells_w2);
-        ymm2 = _mm256_permute2f128_ps(ymm , ymm , 1);
-        ymm = _mm256_add_ps(ymm, ymm2);
-        ymm = _mm256_hadd_ps(ymm, ymm);
-        ymm = _mm256_hadd_ps(ymm, ymm);
-        float u_y = _mm256_cvtss_f32(ymm) / local_density;
+        float u_y = (cells[ii + jj*params.nx].speeds[2]
+                      + cells[ii + jj*params.nx].speeds[5]
+                      + cells[ii + jj*params.nx].speeds[6]
+                      - (cells[ii + jj*params.nx].speeds[4]
+                         + cells[ii + jj*params.nx].speeds[7]
+                         + cells[ii + jj*params.nx].speeds[8]))
+                     / local_density;
+        // const __m256 cells_w2 = _mm256_setr_ps(0,1,0,-1,1,1,-1,-1);
+        // ymm = _mm256_mul_ps(cells_vec, cells_w2);
+        // ymm2 = _mm256_permute2f128_ps(ymm , ymm , 1);
+        // ymm = _mm256_add_ps(ymm, ymm2);
+        // ymm = _mm256_hadd_ps(ymm, ymm);
+        // ymm = _mm256_hadd_ps(ymm, ymm);
+        // float u_y = _mm256_cvtss_f32(ymm) / local_density;
 
         float u_sq = u_x * u_x + u_y * u_y; 
         /* directional velocity components */
@@ -124,7 +124,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
 int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obstacles) {
 
   /* loop over the cells in the grid */
-#pragma omp parallel for default(none) shared(params, cells, tmp_cells, obstacles)
+#pragma omp parallel for 
   for (int jj = 0; jj < params.ny; jj++)
   {
     for (int ii = 0; ii < params.nx; ii++)
@@ -155,7 +155,7 @@ int obstacle(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obst
 int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
   /* loop over _all_ cells */
 
-#pragma omp parallel for default(none) shared(params, cells, tmp_cells) 
+#pragma omp parallel for 
   for (int jj = 0; jj < params.ny; jj++)
   {
     for (int ii = 0; ii < params.nx; ii++)

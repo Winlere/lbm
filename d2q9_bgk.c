@@ -248,66 +248,108 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
   const float cst2 = 1.0 / 6.0;
   const float cst3 = 1.0 / 2.0;
 
-  int ii, jj;
-  float local_density;
-
-  // top wall (bounce)
-  jj = params.ny - 1;
-  for (ii = 0; ii < params.nx; ii++) {
-    cells[ii + jj * params.nx].speeds[4] =
-        tmp_cells[ii + jj * params.nx].speeds[2];
-    cells[ii + jj * params.nx].speeds[7] =
-        tmp_cells[ii + jj * params.nx].speeds[5];
-    cells[ii + jj * params.nx].speeds[8] =
-        tmp_cells[ii + jj * params.nx].speeds[6];
-  }
-
-  // bottom wall (bounce)
-  jj = 0;
-  for (ii = 0; ii < params.nx; ii++) {
-    cells[ii + jj * params.nx].speeds[2] =
-        tmp_cells[ii + jj * params.nx].speeds[4];
-    cells[ii + jj * params.nx].speeds[5] =
-        tmp_cells[ii + jj * params.nx].speeds[7];
-    cells[ii + jj * params.nx].speeds[6] =
-        tmp_cells[ii + jj * params.nx].speeds[8];
-  }
-
-  // left wall (inlet)
-  ii = 0;
-  for (jj = 0; jj < params.ny; jj++) {
-    local_density = (cells[ii + jj * params.nx].speeds[0] +
-                     cells[ii + jj * params.nx].speeds[2] +
-                     cells[ii + jj * params.nx].speeds[4] +
-                     2.0 * cells[ii + jj * params.nx].speeds[3] +
-                     2.0 * cells[ii + jj * params.nx].speeds[6] +
-                     2.0 * cells[ii + jj * params.nx].speeds[7]) /
-                    (1.0 - inlets[jj]);
-
-    cells[ii + jj * params.nx].speeds[1] =
-        cells[ii + jj * params.nx].speeds[3] +
-        cst1 * local_density * inlets[jj];
-
-    cells[ii + jj * params.nx].speeds[5] =
-        cells[ii + jj * params.nx].speeds[7] -
-        cst3 * (cells[ii + jj * params.nx].speeds[2] -
-                cells[ii + jj * params.nx].speeds[4]) +
-        cst2 * local_density * inlets[jj];
-
-    cells[ii + jj * params.nx].speeds[8] =
-        cells[ii + jj * params.nx].speeds[6] +
-        cst3 * (cells[ii + jj * params.nx].speeds[2] -
-                cells[ii + jj * params.nx].speeds[4]) +
-        cst2 * local_density * inlets[jj];
-  }
-
-  // right wall (outlet)
-  ii = params.nx - 1;
-  for (jj = 0; jj < params.ny; jj++) {
-    for (int kk = 0; kk < NSPEEDS; kk++) {
-      cells[ii + jj * params.nx].speeds[kk] =
-          cells[ii - 1 + jj * params.nx].speeds[kk];
+#if defined(LBM_ENV_AUTOLAB)
+#if __GNUC__ < 9
+#pragma omp parallel default(none) shared(cells, tmp_cells, inlets) \
+    num_threads(4)
+#else
+#pragma omp parallel default(none) \
+    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) num_threads(4)
+#endif
+#else
+#if __GNUC__ < 9
+#pragma omp parallel default(none) shared(cells, tmp_cells, inlets)
+#else
+#pragma omp parallel default(none) \
+    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3)
+#endif
+#endif
+  {
+    // top wall (bounce)
+#pragma omp for nowait
+    for (int ii = 0; ii < params.nx; ii++) {
+      int jj = params.ny - 1;
+      cells[ii + jj * params.nx].speeds[4] =
+          tmp_cells[ii + jj * params.nx].speeds[2];
+      cells[ii + jj * params.nx].speeds[7] =
+          tmp_cells[ii + jj * params.nx].speeds[5];
+      cells[ii + jj * params.nx].speeds[8] =
+          tmp_cells[ii + jj * params.nx].speeds[6];
     }
+
+    // bottom wall (bounce)
+#pragma omp for nowait
+    for (int ii = 0; ii < params.nx; ii++) {
+      int jj = 0;
+      cells[ii + jj * params.nx].speeds[2] =
+          tmp_cells[ii + jj * params.nx].speeds[4];
+      cells[ii + jj * params.nx].speeds[5] =
+          tmp_cells[ii + jj * params.nx].speeds[7];
+      cells[ii + jj * params.nx].speeds[6] =
+          tmp_cells[ii + jj * params.nx].speeds[8];
+    }
+    // wait for all threads to complete
+#pragma omp barrier
+  }
+
+#if defined(LBM_ENV_AUTOLAB)
+#if __GNUC__ < 9
+#pragma omp parallel default(none) shared(cells, tmp_cells, inlets) \
+    num_threads(4)
+#else
+#pragma omp parallel default(none) \
+    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) num_threads(4)
+#endif
+#else
+#if __GNUC__ < 9
+#pragma omp parallel default(none) shared(cells, tmp_cells, inlets)
+#else
+#pragma omp parallel default(none) \
+    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3)
+#endif
+#endif
+  {
+    // left wall (inlet)
+#pragma omp for nowait
+    for (int jj = 0; jj < params.ny; jj++) {
+      int ii = 0;
+      float local_density = (cells[ii + jj * params.nx].speeds[0] +
+                             cells[ii + jj * params.nx].speeds[2] +
+                             cells[ii + jj * params.nx].speeds[4] +
+                             2.0 * cells[ii + jj * params.nx].speeds[3] +
+                             2.0 * cells[ii + jj * params.nx].speeds[6] +
+                             2.0 * cells[ii + jj * params.nx].speeds[7]) /
+                            (1.0 - inlets[jj]);
+
+      cells[ii + jj * params.nx].speeds[1] =
+          cells[ii + jj * params.nx].speeds[3] +
+          cst1 * local_density * inlets[jj];
+
+      cells[ii + jj * params.nx].speeds[5] =
+          cells[ii + jj * params.nx].speeds[7] -
+          cst3 * (cells[ii + jj * params.nx].speeds[2] -
+                  cells[ii + jj * params.nx].speeds[4]) +
+          cst2 * local_density * inlets[jj];
+
+      cells[ii + jj * params.nx].speeds[8] =
+          cells[ii + jj * params.nx].speeds[6] +
+          cst3 * (cells[ii + jj * params.nx].speeds[2] -
+                  cells[ii + jj * params.nx].speeds[4]) +
+          cst2 * local_density * inlets[jj];
+    }
+
+    // right wall (outlet)
+#pragma omp for nowait
+    for (int jj = 0; jj < params.ny; jj++) {
+      int ii = params.nx - 1;
+      for (int kk = 0; kk < NSPEEDS; kk++) {
+        cells[ii + jj * params.nx].speeds[kk] =
+            cells[ii - 1 + jj * params.nx].speeds[kk];
+      }
+    }
+
+    // wait for all threads to complete
+#pragma omp barrier
   }
 
   return EXIT_SUCCESS;

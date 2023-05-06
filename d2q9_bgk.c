@@ -98,16 +98,25 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         /* zero velocity density: weight w0 */
 
         // d_equ[0] = w0 * local_density * (1.f - u_sq / (2.f * c_sq));
-        tmp_cells[ii + jj*params.nx].speeds[0] = cells[ii + jj*params.nx].speeds[0]
-                                          + params.omega
-                                          * (w0 * local_density * (1.f - u_sq / (2.f * c_sq)) - cells[ii + jj*params.nx].speeds[0]);
-        const __m256 u_vec = _mm256_setr_ps(u_x,u_y,-u_x,-u_y,u_x+u_y,-u_x+u_y,-u_x-u_y,u_x-u_y);
+        const float c0 = local_density * (1.f - u_sq / (2.f * c_sq));
+        tmp_cells[ii + jj*params.nx].speeds[0] = (1-params.omega) * cells[ii + jj*params.nx].speeds[0] + c0 * w0 * params.omega;
+
+        const __m256 x = _mm256_setr_ps(u_x,u_y,-u_x,-u_y,u_x+u_y,-u_x+u_y,-u_x-u_y,u_x-u_y);
         const __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
-        const __m256 d_equ_vec = _mm256_mul_ps(w_vec, _mm256_mul_ps(_mm256_set1_ps(local_density), _mm256_add_ps(_mm256_set1_ps(1.f), _mm256_add_ps(_mm256_div_ps(u_vec, _mm256_set1_ps(c_sq)), _mm256_sub_ps(_mm256_div_ps(_mm256_mul_ps(u_vec, u_vec), _mm256_mul_ps(_mm256_set1_ps(2.f), _mm256_mul_ps(_mm256_set1_ps(c_sq), _mm256_set1_ps(c_sq)))), _mm256_div_ps(_mm256_set1_ps(u_sq), _mm256_mul_ps(_mm256_set1_ps(2.f), _mm256_set1_ps(c_sq))))))));
+        
+        // tmp_cells[ii + jj*params.nx].speeds[0] = cells[ii + jj*params.nx].speeds[0]
+        //                           + params.omega
+        //                           * (w0 * local_density * (1.f - u_sq / (2.f * c_sq)) - cells[ii + jj*params.nx].speeds[0]);
+
+        //const __m256 d_equ_vec = _mm256_mul_ps(w_vec, _mm256_mul_ps(_mm256_set1_ps(local_density), _mm256_add_ps(_mm256_set1_ps(1.f), _mm256_add_ps(_mm256_div_ps(u_vec, _mm256_set1_ps(c_sq)), _mm256_sub_ps(_mm256_div_ps(_mm256_mul_ps(u_vec, u_vec), _mm256_mul_ps(_mm256_set1_ps(2.f), _mm256_mul_ps(_mm256_set1_ps(c_sq), _mm256_set1_ps(c_sq)))), _mm256_div_ps(_mm256_set1_ps(u_sq), _mm256_mul_ps(_mm256_set1_ps(2.f), _mm256_set1_ps(c_sq))))))));
+        const __m256 t0 = _mm256_set1_ps(c0);
+        const __m256 t1 = _mm256_set1_ps(local_density / c_sq);
+        const __m256 t2 = _mm256_set1_ps(local_density / (2 * c_sq * c_sq));
+        const __m256 d_equ_vec = _mm256_mul_ps(w_vec,_mm256_add_ps(t0,_mm256_mul_ps(x,_mm256_add_ps(t1,_mm256_mul_ps(x,t2)))));
         
         /* relaxation step */
 
-        // const __m256 cells_vec = _mm256_loadu_ps(cells[ii + jj*params.nx].speeds + 1);
+        // const __m256 cells_vec = _mm256_loadu_ps(cells[ii + jj*params.nx].speeds + 1); 
         const __m256 omega_vec = _mm256_set1_ps(params.omega);
         const __m256 temp_vec2 = _mm256_add_ps(cells_vec, _mm256_mul_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec)));
         _mm256_storeu_ps(tmp_cells[ii + jj*params.nx].speeds + 1, temp_vec2);

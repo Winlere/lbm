@@ -39,11 +39,21 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
   ** the collision step is called before
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
+#if defined(LBM_ENV_AUTOLAB)
+#if __GNUC__ < 9
+#pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
+    num_threads(4)
+#else
+#pragma omp parallel for default(none) shared( \
+        params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2) num_threads(4)
+#endif
+#else
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles)
 #else
 #pragma omp parallel for default(none) \
     shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2)
+#endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
@@ -76,26 +86,19 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
         float u_sq = u_x * u_x + u_y * u_y;
 
         /* directional velocity components */
-        float u[NSPEEDS];
-        u[0] = 0;          /* zero */
-        u[1] = u_x;        /* east */
-        u[2] = u_y;        /* north */
-        u[3] = -u_x;       /* west */
-        u[4] = -u_y;       /* south */
-        u[5] = u_x + u_y;  /* north-east */
-        u[6] = -u_x + u_y; /* north-west */
-        u[7] = -u_x - u_y; /* south-west */
-        u[8] = u_x - u_y;  /* south-east */
+        float u0 = 0;
+        __m256 u_vec = _mm256_add_ps(
+            _mm256_setr_ps(u_x, u_y, -u_x, -u_y, u_x, -u_x, -u_x, u_x),
+            _mm256_setr_ps(0, 0, 0, 0, u_y, u_y, -u_y, -u_y));
 
         /* equilibrium densities */
         float d_equ[NSPEEDS];
         /* zero velocity density: weight w0 */
 
         d_equ[0] = w0 * local_density *
-                   (1.f + u[0] / c_sq + (u[0] * u[0]) / (2.f * c_sq * c_sq) -
+                   (1.f + u0 / c_sq + (u0 * u0) / (2.f * c_sq * c_sq) -
                     u_sq / (2.f * c_sq));
 
-        __m256 u_vec = _mm256_loadu_ps(u + 1);
         __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
         _mm256_storeu_ps(
             d_equ + 1,
@@ -147,12 +150,22 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 */
 int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
              int *obstacles) {
-  /* loop over the cells in the grid */
+/* loop over the cells in the grid */
+#if defined(LBM_ENV_AUTOLAB)
+#if __GNUC__ < 9
+#pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
+    num_threads(4)
+#else
+#pragma omp parallel for default(none) \
+    shared(params, cells, tmp_cells, obstacles) num_threads(4)
+#endif
+#else
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles)
 #else
 #pragma omp parallel for default(none) \
     shared(params, cells, tmp_cells, obstacles)
+#endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
@@ -188,11 +201,20 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
-  /* loop over _all_ cells */
+/* loop over _all_ cells */
+#if defined(LBM_ENV_AUTOLAB)
+#if __GNUC__ < 9
+#pragma omp parallel for default(none) shared(cells, tmp_cells) num_threads(4)
+#else
+#pragma omp parallel for default(none) shared(params, cells, tmp_cells) \
+    num_threads(4)
+#endif
+#else
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells)
 #else
 #pragma omp parallel for default(none) shared(params, cells, tmp_cells)
+#endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {

@@ -59,6 +59,10 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
                          + cells[ii + jj*params.nx].speeds[6]
                          + cells[ii + jj*params.nx].speeds[7]))
                      / local_density;
+        //use AVX to optimize the above summation
+
+
+
         /* compute y velocity component */
         float u_y = (cells[ii + jj*params.nx].speeds[2]
                       + cells[ii + jj*params.nx].speeds[5]
@@ -67,7 +71,7 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
                          + cells[ii + jj*params.nx].speeds[7]
                          + cells[ii + jj*params.nx].speeds[8]))
                      / local_density;
-
+        
         /* velocity squared */
         float u_sq = u_x * u_x + u_y * u_y;
 
@@ -84,23 +88,24 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         u[8] =   u_x - u_y;  /* south-east */
 
         /* equilibrium densities */
-        float d_equ[NSPEEDS];
+        // float d_equ[NSPEEDS];
         /* zero velocity density: weight w0 */
 
-        d_equ[0] = w0 * local_density * (1.f - u_sq / (2.f * c_sq));
+        // d_equ[0] = w0 * local_density * (1.f - u_sq / (2.f * c_sq));
+        tmp_cells[ii + jj*params.nx].speeds[0] = cells[ii + jj*params.nx].speeds[0]
+                                          + params.omega
+                                          * (w0 * local_density * (1.f - u_sq / (2.f * c_sq)) - cells[ii + jj*params.nx].speeds[0]);
 
-        __m256 u_vec = _mm256_loadu_ps(u + 1);
-        __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
+        const __m256 u_vec = _mm256_loadu_ps(u + 1);
+        const __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
         __m256 d_equ_vec = _mm256_mul_ps(w_vec, _mm256_mul_ps(_mm256_set1_ps(local_density), _mm256_add_ps(_mm256_set1_ps(1.f), _mm256_add_ps(_mm256_div_ps(u_vec, _mm256_set1_ps(c_sq)), _mm256_sub_ps(_mm256_div_ps(_mm256_mul_ps(u_vec, u_vec), _mm256_mul_ps(_mm256_set1_ps(2.f), _mm256_mul_ps(_mm256_set1_ps(c_sq), _mm256_set1_ps(c_sq)))), _mm256_div_ps(_mm256_set1_ps(u_sq), _mm256_mul_ps(_mm256_set1_ps(2.f), _mm256_set1_ps(c_sq))))))));
-        _mm256_storeu_ps(d_equ + 1, d_equ_vec);
         
         /* relaxation step */
-        for (int kk = 0; kk < NSPEEDS; kk++)
-        {
-          tmp_cells[ii + jj*params.nx].speeds[kk] = cells[ii + jj*params.nx].speeds[kk]
-                                                  + params.omega
-                                                  * (d_equ[kk] - cells[ii + jj*params.nx].speeds[kk]); //TODO worst
-        }
+
+        const __m256 cells_vec = _mm256_loadu_ps(cells[ii + jj*params.nx].speeds + 1);
+        const __m256 omega_vec = _mm256_set1_ps(params.omega);
+        const __m256 temp_vec2 = _mm256_add_ps(cells_vec, _mm256_mul_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec)));
+        _mm256_storeu_ps(tmp_cells[ii + jj*params.nx].speeds + 1, temp_vec2);
       }
     }
   }

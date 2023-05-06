@@ -116,6 +116,11 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         d_equ[8] = w2 * local_density * (1.f + u[8] / c_sq
                                          + (u[8] * u[8]) / (2.f * c_sq * c_sq)
                                          - u_sq / (2.f * c_sq));
+        __m256 u_vec = _mm256_loadu_ps(u + 1);
+        __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
+        __m256 d_equ_vec = _mm256_mul_ps(w_vec, _mm256_mul_ps(_mm256_set1_ps(local_density), _mm256_add_ps(_mm256_set1_ps(1.f), _mm256_add_ps(_mm256_div_ps(u_vec, _mm256_set1_ps(c_sq)), _mm256_sub_ps(_mm256_div_ps(_mm256_mul_ps(u_vec, u_vec), _mm256_mul_ps(_mm256_set1_ps(2.f), _mm256_mul_ps(_mm256_set1_ps(c_sq), _mm256_set1_ps(c_sq)))), _mm256_div_ps(_mm256_set1_ps(u_sq), _mm256_mul_ps(_mm256_set1_ps(2.f), _mm256_set1_ps(c_sq))))))));
+        _mm256_storeu_ps(d_equ + 1, d_equ_vec);
+        
         /* relaxation step */
         for (int kk = 0; kk < NSPEEDS; kk++)
         {

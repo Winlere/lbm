@@ -168,28 +168,56 @@ int streaming(const t_param params, t_speed* cells, t_speed* tmp_cells) {
 #pragma omp parallel for default(none) shared(params, cells, tmp_cells)
   for (int jj = 0; jj < params.ny; jj++)
   {
-    for (int ii = 0; ii < params.nx; ii++)
+    int y_n = (jj + 1) % params.ny;
+    int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
+    /* ii = 0 */
     {
       /* determine indices of axis-direction neighbours
       ** respecting periodic boundary conditions (wrap around) */
-      int y_n = (jj + 1) % params.ny;
-      int x_e = (ii + 1) % params.nx;
-      int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-      int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
       /* propagate densities from neighbouring cells, following
       ** appropriate directions of travel and writing into
       ** scratch space grid */
+      cells[jj*params.nx].speeds[1] = tmp_cells[jj*params.nx].speeds[1]; /* east */
+      cells[params.nx - 1 + y_n*params.nx].speeds[5] = tmp_cells[jj*params.nx].speeds[5]; /* north-east */
+      cells[params.nx - 1 + jj*params.nx].speeds[8] = tmp_cells[jj*params.nx].speeds[8]; /* north */
+      cells[params.nx - 1 + y_s*params.nx].speeds[7] = tmp_cells[jj*params.nx].speeds[7]; /* north-west */
+      cells[1 + y_s*params.nx].speeds[6] = tmp_cells[jj*params.nx].speeds[6]; /* west */
+    }
+    /* ii = params.nx - 1*/
+    {
+      /* determine indices of axis-direction neighbours
+      ** respecting periodic boundary conditions (wrap around) */
+      /* propagate densities from neighbouring cells, following
+      ** appropriate directions of travel and writing into
+      ** scratch space grid */
+      cells[(params.nx - 1) + jj*params.nx].speeds[3] = tmp_cells[(params.nx - 1) + jj*params.nx].speeds[3]; /* west */
+      cells[0 + y_n*params.nx].speeds[7] = tmp_cells[(params.nx - 1) + jj*params.nx].speeds[7]; /* south-west */
+      cells[0 + jj*params.nx].speeds[6] = tmp_cells[(params.nx - 1) + jj*params.nx].speeds[6]; /* south */
+      cells[0 + y_s*params.nx].speeds[5] = tmp_cells[(params.nx - 1) + jj*params.nx].speeds[5]; /* south-east */
+      cells[(params.nx - 2) + y_n*params.nx].speeds[8] = tmp_cells[(params.nx - 1) + jj*params.nx].speeds[8]; /* east */
+    }
+    for (int ii = 1; ii < params.nx - 1; ii++)
+    {
+      /* determine indices of axis-direction neighbours
+      ** respecting periodic boundary conditions (wrap around) */
+      int x_e = ii + 1;
+      int x_w = ii - 1;
+      /* propagate densities from neighbouring cells, following
+      ** appropriate directions of travel and writing into
+      ** scratch space grid */
+      cells[x_w + y_s*params.nx].speeds[7] = tmp_cells[ii + jj*params.nx].speeds[7]; /* south-west */
+      cells[ii  + y_s*params.nx].speeds[4] = tmp_cells[ii + jj*params.nx].speeds[4]; /* south */
+      cells[x_e + y_s*params.nx].speeds[8] = tmp_cells[ii + jj*params.nx].speeds[8]; /* south-east */
+      
+      cells[x_w + jj *params.nx].speeds[3] = tmp_cells[ii + jj*params.nx].speeds[3]; /* west */ 
       cells[ii  + jj *params.nx].speeds[0] = tmp_cells[ii + jj*params.nx].speeds[0]; /* central cell, no movement */ 
       cells[x_e + jj *params.nx].speeds[1] = tmp_cells[ii + jj*params.nx].speeds[1]; /* east */
-      cells[x_w + jj *params.nx].speeds[3] = tmp_cells[ii + jj*params.nx].speeds[3]; /* west */ 
       
+      cells[x_w + y_n*params.nx].speeds[6] = tmp_cells[ii + jj*params.nx].speeds[6]; /* north-west */
       cells[ii  + y_n*params.nx].speeds[2] = tmp_cells[ii + jj*params.nx].speeds[2]; /* north */
       cells[x_e + y_n*params.nx].speeds[5] = tmp_cells[ii + jj*params.nx].speeds[5]; /* north-east */
-      cells[x_w + y_n*params.nx].speeds[6] = tmp_cells[ii + jj*params.nx].speeds[6]; /* north-west */
+      
 
-      cells[ii  + y_s*params.nx].speeds[4] = tmp_cells[ii + jj*params.nx].speeds[4]; /* south */
-      cells[x_w + y_s*params.nx].speeds[7] = tmp_cells[ii + jj*params.nx].speeds[7]; /* south-west */
-      cells[x_e + y_s*params.nx].speeds[8] = tmp_cells[ii + jj*params.nx].speeds[8]; /* south-east */ //TODO 6s
     }
   }
 

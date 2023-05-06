@@ -60,6 +60,7 @@ lbm
 # Profiling files
 /vtune/
 /gprof/
+prof
 
 # VSCode
 /.vscode/

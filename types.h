@@ -3,6 +3,7 @@
 
 #include <immintrin.h>
 #include <math.h>
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/resource.h>

@@ -1,5 +1,5 @@
 # Makefile
-CC = gcc-9
+CC = gcc
 CFLAGS = -std=c99 -Wall -O3 -g -pg -march=native 
 LIBS = -lm -fopenmp
 SRC = main.c d2q9_bgk.c calc.c utils.c 

@@ -40,8 +40,8 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
 
-  for (int ii = 0; ii < params.nx; ii++) {
-    for (int jj = 0; jj < params.ny; jj++) {
+  for (int jj = 0; jj < params.ny; jj++) {
+    for (int ii = 0; ii < params.nx; ii++) {
       if (!obstacles[ii + jj * params.nx]) {
         /* compute local density total */
         float local_density = 0.f;
@@ -133,10 +133,9 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 */
 int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
              int *obstacles) {
-
   /* loop over the cells in the grid */
-  for (int ii = 0; ii < params.nx; ii++) {
-    for (int jj = 0; jj < params.ny; jj++) {
+  for (int jj = 0; jj < params.ny; jj++) {
+    for (int ii = 0; ii < params.nx; ii++) {
       /* if the cell contains an obstacle */
       if (obstacles[jj * params.nx + ii]) {
         /* called after collision, so taking values from scratch space
@@ -170,8 +169,8 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
 */
 int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
   /* loop over _all_ cells */
-  for (int ii = 0; ii < params.nx; ii++) {
-    for (int jj = 0; jj < params.ny; jj++) {
+  for (int jj = 0; jj < params.ny; jj++) {
+    for (int ii = 0; ii < params.nx; ii++) {
       /* determine indices of axis-direction neighbours
       ** respecting periodic boundary conditions (wrap around) */
       int y_n = (jj + 1) % params.ny;
@@ -184,18 +183,20 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
       cells[ii + jj * params.nx].speeds[0] =
           tmp_cells[ii + jj * params.nx]
               .speeds[0]; /* central cell, no movement */
-      cells[x_e + jj * params.nx].speeds[1] =
-          tmp_cells[ii + jj * params.nx].speeds[1]; /* east */
-      cells[ii + y_n * params.nx].speeds[2] =
-          tmp_cells[ii + jj * params.nx].speeds[2]; /* north */
       cells[x_w + jj * params.nx].speeds[3] =
           tmp_cells[ii + jj * params.nx].speeds[3]; /* west */
-      cells[ii + y_s * params.nx].speeds[4] =
-          tmp_cells[ii + jj * params.nx].speeds[4]; /* south */
-      cells[x_e + y_n * params.nx].speeds[5] =
-          tmp_cells[ii + jj * params.nx].speeds[5]; /* north-east */
+      cells[x_e + jj * params.nx].speeds[1] =
+          tmp_cells[ii + jj * params.nx].speeds[1]; /* east */
+
+      cells[ii + y_n * params.nx].speeds[2] =
+          tmp_cells[ii + jj * params.nx].speeds[2]; /* north */
       cells[x_w + y_n * params.nx].speeds[6] =
           tmp_cells[ii + jj * params.nx].speeds[6]; /* north-west */
+      cells[x_e + y_n * params.nx].speeds[5] =
+          tmp_cells[ii + jj * params.nx].speeds[5]; /* north-east */
+
+      cells[ii + y_s * params.nx].speeds[4] =
+          tmp_cells[ii + jj * params.nx].speeds[4]; /* south */
       cells[x_w + y_s * params.nx].speeds[7] =
           tmp_cells[ii + jj * params.nx].speeds[7]; /* south-west */
       cells[x_e + y_s * params.nx].speeds[8] =
@@ -275,7 +276,6 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
   // right wall (outlet)
   ii = params.nx - 1;
   for (jj = 0; jj < params.ny; jj++) {
-
     for (int kk = 0; kk < NSPEEDS; kk++) {
       cells[ii + jj * params.nx].speeds[kk] =
           cells[ii - 1 + jj * params.nx].speeds[kk];

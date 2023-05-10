@@ -1,4 +1,6 @@
 #include "types.h"
+#include <time.h>
+
 
 /* utility functions */
 void die(const char* message, const int line, const char* file)
@@ -7,6 +9,25 @@ void die(const char* message, const int line, const char* file)
   fprintf(stderr, "%s\n", message);
   fflush(stderr);
   exit(EXIT_FAILURE);
+}
+
+void* aligned_malloc(size_t required_bytes, size_t alignment)
+{
+    void* p1; // original block
+    void** p2; // aligned block
+    int offset = alignment - 1 + sizeof(void*);
+    if ((p1 = (void*)malloc(required_bytes + offset)) == NULL)
+    {
+       return NULL;
+    }
+    p2 = (void**)(((size_t)(p1) + offset) & ~(alignment - 1));
+    p2[-1] = p1;
+    return p2;
+}
+
+void aligned_free(void *p)
+{
+    free(((void**)p)[-1]);
 }
 
 /* load params, allocate memory, load obstacles & initialise fluid particle densities */
@@ -72,15 +93,18 @@ int initialise(const char* paramfile, const char* obstaclefile,
   /* Allocate memory. */
 
   /* main grid */
-  *cells_ptr = (t_speed*)malloc(sizeof(t_speed) * (params->ny * params->nx));
+  *cells_ptr = (t_speed*)aligned_malloc(sizeof(t_speed) * (params->ny * params->nx),64);
+
+
   if (*cells_ptr == NULL) die("cannot allocate memory for cells", __LINE__, __FILE__);
 
   /* 'helper' grid, used as scratch space */
-  *tmp_cells_ptr = (t_speed*)malloc(sizeof(t_speed) * (params->ny * params->nx));
+  *tmp_cells_ptr = (t_speed*)aligned_malloc(sizeof(t_speed) * (params->ny * params->nx),64);
+  
   if (*tmp_cells_ptr == NULL) die("cannot allocate memory for tmp_cells", __LINE__, __FILE__);
 
   /* the map of obstacles */
-  *obstacles_ptr = malloc(sizeof(int) * (params->ny * params->nx));
+  *obstacles_ptr = aligned_malloc(sizeof(int) * (params->ny * params->nx),64);
   if (*obstacles_ptr == NULL) die("cannot allocate column memory for obstacles", __LINE__, __FILE__);
 
   /* initialise densities */
@@ -148,7 +172,7 @@ int initialise(const char* paramfile, const char* obstaclefile,
   fclose(fp);
 
   /* allocate space to hold the velocity of the cells at the inlet. */
-  *inlets_ptr = (float*)malloc(sizeof(float) * params->ny);
+  *inlets_ptr = (float*)aligned_malloc(sizeof(float) * params->ny,64);
 
   return EXIT_SUCCESS;
 }
@@ -160,16 +184,16 @@ int finalise(const t_param* params, t_speed** cells_ptr, t_speed** tmp_cells_ptr
   /*
   ** free up allocated memory
   */
-  free(*cells_ptr);
+  aligned_free(*cells_ptr);
   *cells_ptr = NULL;
 
-  free(*tmp_cells_ptr);
+  aligned_free(*tmp_cells_ptr);
   *tmp_cells_ptr = NULL;
 
-  free(*obstacles_ptr);
+  aligned_free(*obstacles_ptr);
   *obstacles_ptr = NULL;
 
-  free(*inlets);
+  aligned_free(*inlets);
   *inlets = NULL;
 
   return EXIT_SUCCESS;

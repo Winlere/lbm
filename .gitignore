@@ -6,3 +6,4 @@ lbm
 prof*
 .gitignore
 *vtune*
+perf.data

@@ -61,6 +61,7 @@ lbm
 /vtune/
 /gprof/
 prof
+/advisor
 
 # VSCode
 /.vscode/

@@ -73,6 +73,11 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
                       cells[ii + jj * params.nx].speeds[6] +
                       cells[ii + jj * params.nx].speeds[7])) /
                     local_density;
+
+        __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
+        __m256 cells_vec =
+            _mm256_loadu_ps(cells[ii + jj * params.nx].speeds + 1);
+
         /* compute y velocity component */
         float u_y = (cells[ii + jj * params.nx].speeds[2] +
                      cells[ii + jj * params.nx].speeds[5] +
@@ -100,25 +105,25 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
             _mm256_set1_ps(c_sq));
 
         /* equilibrium densities */
-        __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
-        __m256 cells_vec =
-            _mm256_loadu_ps(cells[ii + jj * params.nx].speeds + 1);
+        __m256 local_density_vec = _mm256_set1_ps(local_density);
+        __m256 local_density_sq_vec = _mm256_set1_ps(local_density_sq);
         __m256 d_equ_vec = _mm256_mul_ps(
             w_vec, _mm256_add_ps(
-                       _mm256_set1_ps(local_density_sq),
+                       local_density_sq_vec,
                        _mm256_mul_ps(
-                           _mm256_set1_ps(local_density),
+                           local_density_vec,
                            _mm256_mul_ps(
                                u_sq_vec,
                                _mm256_add_ps(_mm256_set1_ps(1.f),
                                              _mm256_mul_ps(_mm256_set1_ps(.5f),
                                                            u_sq_vec))))));
 
+        __m256 omega_vec = _mm256_set1_ps(params.omega);
         _mm256_storeu_ps(
             tmp_cells[ii + jj * params.nx].speeds + 1,
-            _mm256_add_ps(cells_vec,
-                          _mm256_mul_ps(_mm256_set1_ps(params.omega),
-                                        _mm256_sub_ps(d_equ_vec, cells_vec))));
+            _mm256_add_ps(
+                cells_vec,
+                _mm256_mul_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec))));
       }
     }
   }
@@ -207,25 +212,25 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
       /* propagate densities from neighbouring cells, following
       ** appropriate directions of travel and writing into
       ** scratch space grid */
-      cells[ii + jj * params.nx].speeds[0] =
-          tmp_cells[ii + jj * params.nx]
-              .speeds[0]; /* central cell, no movement */
-      cells[ii + jj * params.nx].speeds[1] =
-          tmp_cells[x_w + jj * params.nx].speeds[1]; /* east */
-      cells[ii + jj * params.nx].speeds[3] =
-          tmp_cells[x_e + jj * params.nx].speeds[3]; /* west */
-
-      cells[ii + jj * params.nx].speeds[2] =
-          tmp_cells[ii + y_s * params.nx].speeds[2]; /* south */
       cells[ii + jj * params.nx].speeds[5] =
           tmp_cells[x_w + y_s * params.nx].speeds[5]; /* north-east */
+      cells[ii + jj * params.nx].speeds[2] =
+          tmp_cells[ii + y_s * params.nx].speeds[2]; /* south */
       cells[ii + jj * params.nx].speeds[6] =
           tmp_cells[x_e + y_s * params.nx].speeds[6]; /* north-west */
 
-      cells[ii + jj * params.nx].speeds[4] =
-          tmp_cells[ii + y_n * params.nx].speeds[4]; /* south */
+      cells[ii + jj * params.nx].speeds[1] =
+          tmp_cells[x_w + jj * params.nx].speeds[1]; /* east */
+      cells[ii + jj * params.nx].speeds[0] =
+          tmp_cells[ii + jj * params.nx]
+              .speeds[0]; /* central cell, no movement */
+      cells[ii + jj * params.nx].speeds[3] =
+          tmp_cells[x_e + jj * params.nx].speeds[3]; /* west */
+
       cells[ii + jj * params.nx].speeds[8] =
           tmp_cells[x_w + y_n * params.nx].speeds[8]; /* south-east */
+      cells[ii + jj * params.nx].speeds[4] =
+          tmp_cells[ii + y_n * params.nx].speeds[4]; /* south */
       cells[ii + jj * params.nx].speeds[7] =
           tmp_cells[x_e + y_n * params.nx].speeds[7]; /* south-west */
     }

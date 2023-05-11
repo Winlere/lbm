@@ -18,7 +18,7 @@ ifeq ($(LBM_ENV_AUTOLAB), 1)
 	CFLAGS += -D LBM_ENV_AUTOLAB
 else
 	# TODO: comment this line in final submission
-	# CFLAGS += -D LBM_ENV_AUTOLAB
+	CFLAGS += -D LBM_ENV_AUTOLAB
 endif
 
 .PHONY: all visual check clean

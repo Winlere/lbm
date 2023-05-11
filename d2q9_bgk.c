@@ -48,11 +48,11 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #if defined(LBM_ENV_AUTOLAB)
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
-    num_threads(4)
+    num_threads(8)
 #else
 #pragma omp parallel for default(none)                                     \
     shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2, one_vec, \
-               half_vec, w_vec, c_sq_vec, omega_vec) num_threads(4)
+               half_vec, w_vec, c_sq_vec, omega_vec) num_threads(8)
 #endif
 #else
 #if __GNUC__ < 9
@@ -146,10 +146,10 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #if defined(LBM_ENV_AUTOLAB)
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
-    num_threads(4)
+    num_threads(8)
 #else
 #pragma omp parallel for default(none) \
-    shared(params, cells, tmp_cells, obstacles) num_threads(4)
+    shared(params, cells, tmp_cells, obstacles) num_threads(8)
 #endif
 #else
 #if __GNUC__ < 9
@@ -204,10 +204,10 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
 /* loop over _all_ cells */
 #if defined(LBM_ENV_AUTOLAB)
 #if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, tmp_cells) num_threads(4)
+#pragma omp parallel for default(none) shared(cells, tmp_cells) num_threads(8)
 #else
 #pragma omp parallel for default(none) shared(params, cells, tmp_cells) \
-    num_threads(4)
+    num_threads(8)
 #endif
 #else
 #if __GNUC__ < 9
@@ -271,10 +271,10 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #if defined(LBM_ENV_AUTOLAB)
 #if __GNUC__ < 9
 #pragma omp parallel default(none) shared(cells, tmp_cells, inlets) \
-    num_threads(4)
+    num_threads(8)
 #else
 #pragma omp parallel default(none) \
-    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) num_threads(4)
+    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) num_threads(8)
 #endif
 #else
 #if __GNUC__ < 9
@@ -315,10 +315,10 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #if defined(LBM_ENV_AUTOLAB)
 #if __GNUC__ < 9
 #pragma omp parallel default(none) shared(cells, tmp_cells, inlets) \
-    num_threads(4)
+    num_threads(8)
 #else
 #pragma omp parallel default(none) \
-    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) num_threads(4)
+    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) num_threads(8)
 #endif
 #else
 #if __GNUC__ < 9

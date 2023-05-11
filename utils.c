@@ -213,10 +213,10 @@ int write_state(char *filename, const t_param params, t_speed *cells,
 #if defined(LBM_ENV_AUTOLAB)
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, obstacles, fp, tmp_u) \
-    num_threads(4)
+    num_threads(8)
 #else
 #pragma omp parallel for default(none) \
-    shared(params, cells, obstacles, fp, tmp_u) num_threads(4)
+    shared(params, cells, obstacles, fp, tmp_u) num_threads(8)
 #endif
 #else
 #if __GNUC__ < 9

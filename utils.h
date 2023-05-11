@@ -18,6 +18,17 @@ int finalise(const t_param* params, t_speed** cells_ptr, t_speed** tmp_cells_ptr
 /* Output current grid state -- each cells' velocity. */
 int write_state(char* filename, const t_param params, t_speed* cells, int* obstacles);
 
+//rewrite initialise in algined_t_speed
+int initialise_aligned(const char* paramfile, const char* obstaclefile,
+               t_param* params, aligned_t_speed*cells_ptr, aligned_t_speed*tmp_cells_ptr,
+               int** obstacles_ptr, float** inlets_ptr);
+// rewrite write_state in algined_t_speed
+int write_state_aligned(char* filename, const t_param params, aligned_t_speed cells, int* obstacles);
+// rewrite finalise in algined_t_speed
+int finalise_aligned(const t_param* params, aligned_t_speed cells_ptr, aligned_t_speed tmp_cells_ptr,
+             int** obstacles_ptr, float** inlets);
+
+
 void* aligned_malloc(size_t required_bytes, size_t alignment);
 void aligned_free(void *p);
 

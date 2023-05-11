@@ -10,7 +10,7 @@
 #include <immintrin.h>
 
 #define NSPEEDS         9
-#define NUM_THREADS     28
+#define NUM_THREADS     4
 
 typedef struct
 {
@@ -29,5 +29,14 @@ typedef struct
 {
   float speeds[NSPEEDS];
 } t_speed;
+
+typedef struct{
+  float speeds[8];
+} t_speed_8;
+
+typedef struct{
+  t_speed_8* other;
+  float* stay;
+} aligned_t_speed;
 
 #endif

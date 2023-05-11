@@ -14,4 +14,9 @@ float av_velocity(const t_param params, t_speed* cells, int* obstacles);
 /* calculate reynold number */
 float calc_reynolds(const t_param params, t_speed* cells, int* obstacles);
 
-#endif
+/* compute average velocity */
+float aligned_av_velocity(const t_param params, aligned_t_speed cells, int* obstacles);
+
+/* calculate reynold number */
+float aligned_calc_reynolds(const t_param params, aligned_t_speed cells, int* obstacles);
+#endif 

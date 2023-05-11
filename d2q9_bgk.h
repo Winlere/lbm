@@ -48,4 +48,5 @@
 */
 
 int timestep(const t_param params, t_speed* cells, t_speed* tmp_cells, float* inlets, int* obstacles);
+int aligned_timestep(const t_param params, aligned_t_speed cells, aligned_t_speed tmp_cells, float* inlets, int* obstacles);
 #endif

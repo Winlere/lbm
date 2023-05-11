@@ -4,11 +4,11 @@
 int set_inlets(const t_param params, float *inlets) {
   for (int jj = 0; jj < params.ny; jj++) {
     if (!params.type)
-      inlets[jj] = params.velocity; // homogeneous
+      inlets[jj] = params.velocity;  // homogeneous
     else
       inlets[jj] = params.velocity * 4.0 *
                    ((1 - ((float)jj) / params.ny) * ((float)(jj + 1)) /
-                    params.ny); // parabolic
+                    params.ny);  // parabolic
   }
   return EXIT_SUCCESS;
 }
@@ -27,28 +27,30 @@ float av_velocity(const t_param params, t_speed *cells, int *obstacles) {
       /* ignore occupied cells */
       if (!obstacles[ii + jj * params.nx]) {
         /* local density total */
-        float local_density = 0.f;
+        float local_density = cells->speeds_0[ii + jj * params.nx];
 
-        for (int kk = 0; kk < NSPEEDS; kk++) {
-          local_density += cells[ii + jj * params.nx].speeds[kk];
+        for (int kk = 0; kk < 8; kk++) {
+          local_density +=
+              cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[kk];
         }
 
         /* x-component of velocity */
-        float u_x = (cells[ii + jj * params.nx].speeds[1] +
-                     cells[ii + jj * params.nx].speeds[5] +
-                     cells[ii + jj * params.nx].speeds[8] -
-                     (cells[ii + jj * params.nx].speeds[3] +
-                      cells[ii + jj * params.nx].speeds[6] +
-                      cells[ii + jj * params.nx].speeds[7])) /
+        float u_x = (cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[0] +
+                     cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[4] +
+                     cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[7] -
+                     (cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[2] +
+                      cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[5] +
+                      cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[6])) /
                     local_density;
         /* compute y velocity component */
-        float u_y = (cells[ii + jj * params.nx].speeds[2] +
-                     cells[ii + jj * params.nx].speeds[5] +
-                     cells[ii + jj * params.nx].speeds[6] -
-                     (cells[ii + jj * params.nx].speeds[4] +
-                      cells[ii + jj * params.nx].speeds[7] +
-                      cells[ii + jj * params.nx].speeds[8])) /
+        float u_y = (cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[1] +
+                     cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[4] +
+                     cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[5] -
+                     (cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[3] +
+                      cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[6] +
+                      cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[7])) /
                     local_density;
+
         /* accumulate the norm of x- and y- velocity components */
         tot_u += sqrtf((u_x * u_x) + (u_y * u_y));
         /* increase counter of inspected cells */

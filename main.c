@@ -21,15 +21,15 @@ void usage(const char *exe) {
 ** initialise, timestep loop, finalise
 */
 int main(int argc, char *argv[]) {
-  char *paramfile = NULL;    /* name of the input parameter file */
-  char *obstaclefile = NULL; /* name of a the input obstacle file */
-  char *out_dir = NULL;      /* name of output directory */
-  t_param params;            /* struct to hold parameter values */
-  t_speed *cells = NULL;     /* grid containing fluid densities */
-  t_speed *tmp_cells = NULL; /* scratch space */
-  int *obstacles = NULL;     /* grid indicating which cells are blocked */
-  float *inlets = NULL;      /* inlet velocity */
-  struct timeval timstr;     /* structure to hold elapsed time */
+  char *paramfile = NULL;           /* name of the input parameter file */
+  char *obstaclefile = NULL;        /* name of a the input obstacle file */
+  char *out_dir = NULL;             /* name of output directory */
+  t_param params;                   /* struct to hold parameter values */
+  t_speed cells = {NULL, NULL};     /* grid containing fluid densities */
+  t_speed tmp_cells = {NULL, NULL}; /* scratch space */
+  int *obstacles = NULL; /* grid indicating which cells are blocked */
+  float *inlets = NULL;  /* inlet velocity */
+  struct timeval timstr; /* structure to hold elapsed time */
   double total_time, init_time,
       comp_time; /* floating point numbers to calculate elapsed wallclock time
                   */
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
 
   /* timestep loop */
   for (int tt = 0; tt < params.maxIters; tt++) {
-    timestep(params, cells, tmp_cells, inlets, obstacles);
+    timestep(params, &cells, &tmp_cells, inlets, obstacles);
 
     /* Visualization */
 #ifdef VISUAL
@@ -100,14 +100,14 @@ int main(int argc, char *argv[]) {
 
   /* write final state and free memory */
   sprintf(buf, "%s/final_state.dat", out_dir);
-  write_state(buf, params, cells, obstacles);
+  write_state(buf, params, &cells, obstacles);
 
   /* Display Reynolds number and time */
   printf("==done==\n");
   printf("Reynolds number:\t\t\t%.12E\n",
-         calc_reynolds(params, cells, obstacles));
+         calc_reynolds(params, &cells, obstacles));
   printf("Average velocity:\t\t\t%.12E\n",
-         av_velocity(params, cells, obstacles));
+         av_velocity(params, &cells, obstacles));
   printf("Elapsed Init time:\t\t\t%.6lf (s)\n", init_time);
   printf("Elapsed Compute time:\t\t\t%.6lf (s)\n", comp_time);
 

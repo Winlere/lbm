@@ -27,7 +27,14 @@ typedef struct {
 
 /* struct to hold the distribution of different speeds */
 typedef struct {
-  float speeds[NSPEEDS];
+  float speeds_1_8[8];
+} __attribute__((aligned(32))) t_speed_1_8;
+
+typedef float t_speed_0;
+
+typedef struct {
+  t_speed_1_8* speeds_1_8;
+  t_speed_0* speeds_0;
 } t_speed;
 
 #endif

@@ -29,13 +29,11 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
 
   /* read in the parameter nx */
   retval = fscanf(fp, "nx: %d\n", &(params->nx));
-  if (retval != 1)
-    die("could not read param file: nx", __LINE__, __FILE__);
+  if (retval != 1) die("could not read param file: nx", __LINE__, __FILE__);
 
   /* read in the parameter ny */
   retval = fscanf(fp, "ny: %d\n", &(params->ny));
-  if (retval != 1)
-    die("could not read param file: ny", __LINE__, __FILE__);
+  if (retval != 1) die("could not read param file: ny", __LINE__, __FILE__);
 
   /* read in the parameter maxIters */
   retval = fscanf(fp, "iters: %d\n", &(params->maxIters));
@@ -59,8 +57,7 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
 
   /* read in the parameter type */
   retval = fscanf(fp, "type: %d\n", &(params->type));
-  if (retval != 1)
-    die("could not read param file: type", __LINE__, __FILE__);
+  if (retval != 1) die("could not read param file: type", __LINE__, __FILE__);
 
   /* and close up the file */
   fclose(fp);
@@ -70,8 +67,9 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
 
   /* Check the calculation stability */
   if (params->velocity > 0.2)
-    printf("Warning: There maybe computational instability due to "
-           "compressibility.\n");
+    printf(
+        "Warning: There maybe computational instability due to "
+        "compressibility.\n");
   if ((2 - params->omega) < 0.15)
     printf("Warning: Possible divergence of results due to relaxation time.\n");
 
@@ -185,11 +183,7 @@ int finalise(const t_param *params, t_speed **cells_ptr,
 /* write state of current grid */
 int write_state(char *filename, const t_param params, t_speed *cells,
                 int *obstacles) {
-  FILE *fp;            /* file pointer */
-  float local_density; /* per grid cell sum of densities */
-  float u_x;           /* x-component of velocity in grid cell */
-  float u_y;           /* y-component of velocity in grid cell */
-  float u;             /* norm--root of summed squares--of u_x and u_y */
+  FILE *fp; /* file pointer */
 
   fp = fopen(filename, "w");
 
@@ -198,8 +192,30 @@ int write_state(char *filename, const t_param params, t_speed *cells,
     die("could not open file output file", __LINE__, __FILE__);
   }
 
+  float *tmp_u = (float *)malloc(sizeof(float) * params.nx * params.ny);
+
   /* loop on grid to calculate the velocity of each cell */
+#if defined(LBM_ENV_AUTOLAB)
+#if __GNUC__ < 9
+#pragma omp parallel for default(none) shared(cells, obstacles, fp, tmp_u) \
+    num_threads(4)
+#else
+#pragma omp parallel for default(none) \
+    shared(params, cells, obstacles, fp, tmp_u) num_threads(4)
+#endif
+#else
+#if __GNUC__ < 9
+#pragma omp parallel for default(none) shared(cells, obstacles, fp, tmp_u)
+#else
+#pragma omp parallel for default(none) \
+    shared(params, cells, obstacles, fp, tmp_u)
+#endif
+#endif
   for (int jj = 0; jj < params.ny; jj++) {
+    float local_density; /* per grid cell sum of densities */
+    float u_x;           /* x-component of velocity in grid cell */
+    float u_y;           /* y-component of velocity in grid cell */
+    float u;             /* norm--root of summed squares--of u_x and u_y */
     for (int ii = 0; ii < params.nx; ii++) {
       if (obstacles[ii + jj * params.nx]) { /* an obstacle cell */
         u = -0.05f;
@@ -230,13 +246,22 @@ int write_state(char *filename, const t_param params, t_speed *cells,
         u = sqrtf((u_x * u_x) + (u_y * u_y));
       }
 
+      tmp_u[ii + jj * params.nx] = u;
+    }
+  }
+
+  /* write to file */
+  for (int jj = 0; jj < params.ny; jj++) {
+    for (int ii = 0; ii < params.nx; ii++) {
       /* write to file */
-      fprintf(fp, "%d %d %.12E\n", ii, jj, u);
+      fprintf(fp, "%d %d %.12E\n", ii, jj, tmp_u[ii + jj * params.nx]);
     }
   }
 
   /* close file */
   fclose(fp);
+
+  free(tmp_u);
 
   return EXIT_SUCCESS;
 }

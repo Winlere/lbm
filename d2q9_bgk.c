@@ -1,4 +1,5 @@
 #include "d2q9_bgk.h"
+#include <stdio.h>
 #include <string.h>
 
 
@@ -28,13 +29,13 @@ int aligned_boundary(const t_param params, aligned_t_speed* cells, aligned_t_spe
 //   return EXIT_SUCCESS;
 // }
 
-int aligned_timestep(const t_param params, aligned_t_speed cells, aligned_t_speed tmp_cells, float *inlets, int *obstacles)
+int aligned_timestep(const t_param params, aligned_t_speed*cells, aligned_t_speed*tmp_cells, float *inlets, int *obstacles)
 {
   /* The main time overhead, you should mainly optimize these processes. */
-  aligned_collision(params, &cells, &tmp_cells, obstacles);
-  aligned_obstacle(params, &cells, &tmp_cells, obstacles);
-  aligned_streaming(params, &cells, &tmp_cells);
-  aligned_boundary(params, &cells, &tmp_cells, inlets);
+  aligned_collision(params, cells, tmp_cells, obstacles);
+  aligned_obstacle(params, cells, tmp_cells, obstacles);
+  aligned_streaming(params, cells, tmp_cells);
+  aligned_boundary(params, cells, tmp_cells, inlets);
   return EXIT_SUCCESS;
 }
 
@@ -339,10 +340,17 @@ int aligned_streaming(const t_param params, aligned_t_speed* cells, aligned_t_sp
     }
   }
   // swap cells.stay and tmp_cells.stay
-  // float* tmp = cells->stay;
-  // cells->stay = tmp_cells->stay;
-  // tmp_cells->stay = tmp;
-  memcpy(cells->stay, tmp_cells->stay, params.nx * params.ny * sizeof(float));
+  float* tmp = cells->stay;
+  //print cells->stay 's location
+  // printf("cells->stay's location is %p\n", cells->stay);
+  // printf("tmp_cells->stay's location is %p\n", tmp_cells->stay);
+  cells->stay = tmp_cells->stay;
+  tmp_cells->stay = tmp;
+  // printf("After swap, cells->stay's location is %p\n", cells->stay);
+  // printf("After swap, tmp_cells->stay's location is %p\n", tmp_cells->stay);
+  // printf("-----------------------------\n");
+  // memcpy(cells->stay, tmp_cells->stay, params.nx * params.ny * sizeof(float));
+  // memset(tmp_cells->stay, 0, params.nx * params.ny * sizeof(float));
   return EXIT_SUCCESS;
 }
 

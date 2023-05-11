@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
   for (int tt = 0; tt < params.maxIters; tt++)
   {
     //timestep(params, cells, tmp_cells, inlets, obstacles);
-    aligned_timestep(params, aligned_cells, aligned_tmp_cells, inlets, obstacles);
+    aligned_timestep(params, &aligned_cells, &aligned_tmp_cells, inlets, obstacles);
 
   /* Visualization */
 #ifdef VISUAL

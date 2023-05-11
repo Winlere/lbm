@@ -7,3 +7,4 @@ prof*
 .gitignore
 *vtune*
 perf.data
+perf.data.old

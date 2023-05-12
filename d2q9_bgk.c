@@ -38,7 +38,7 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
   const __m256 one_vec = _mm256_set1_ps(1.f);
   const __m256 half_vec = _mm256_set1_ps(0.5f);
   const __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
-  const __m256 c_sq_vec = _mm256_set1_ps(c_sq);
+  const __m256 one_div_c_sq_vec = _mm256_set1_ps(1.f / c_sq);
   const __m256 omega_vec = _mm256_set1_ps(params.omega);
 
   /* loop over the cells in the grid
@@ -52,15 +52,17 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #else
 #pragma omp parallel for default(none)                                     \
     shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2, one_vec, \
-               half_vec, w_vec, c_sq_vec, omega_vec) num_threads(8)
+               half_vec, w_vec, one_div_c_sq_vec, omega_vec) num_threads(8)
 #endif
 #else
 #if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles)
+#pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
+    num_threads(2 * omp_get_num_procs())
 #else
 #pragma omp parallel for default(none)                                     \
     shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2, one_vec, \
-               half_vec, w_vec, c_sq_vec, omega_vec)
+               half_vec, w_vec, one_div_c_sq_vec, omega_vec)               \
+    num_threads(2 * omp_get_num_procs())
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
@@ -130,7 +132,7 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
         __m256 local_density_sq_vec = _mm256_set1_ps(local_density_sq);
 
         /* equilibrium densities */
-        __m256 u_sq_vec = _mm256_div_ps(u_vec, c_sq_vec);
+        __m256 u_sq_vec = _mm256_mul_ps(u_vec, one_div_c_sq_vec);
 
         __m256 d_equ_vec = _mm256_mul_ps(
             w_vec,
@@ -195,10 +197,12 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #endif
 #else
 #if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles)
+#pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
+    num_threads(2 * omp_get_num_procs())
 #else
-#pragma omp parallel for default(none) \
-    shared(params, cells, tmp_cells, obstacles)
+#pragma omp parallel for default(none)          \
+    shared(params, cells, tmp_cells, obstacles) \
+    num_threads(2 * omp_get_num_procs())
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
@@ -253,13 +257,15 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
 #endif
 #else
 #if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, tmp_cells)
+#pragma omp parallel for default(none) shared(cells, tmp_cells) \
+    num_threads(2 * omp_get_num_procs())
 #else
-#pragma omp parallel for default(none) shared(params, cells, tmp_cells)
+#pragma omp parallel for default(none) shared(params, cells, tmp_cells) \
+    num_threads(2 * omp_get_num_procs())
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
-    int y_n = (jj + 1) % params.ny;
+    int y_n = (jj + 1) & (params.ny - 1);
     int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
     int x_e = 1;
     int x_w = params.nx - 1;
@@ -292,7 +298,7 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
               .speeds_1_8[6]; /* south-west */
       /* determine indices of axis-direction neighbours
       ** respecting periodic boundary conditions (wrap around) */
-      x_e = (ii + 2) % params.nx;
+      x_e = (ii + 2) & (params.nx - 1);
       x_w = ii;
     }
   }
@@ -323,10 +329,12 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #endif
 #else
 #if __GNUC__ < 9
-#pragma omp parallel default(none) shared(cells, tmp_cells, inlets)
+#pragma omp parallel default(none) shared(cells, tmp_cells, inlets) \
+    num_threads(2 * omp_get_num_procs())
 #else
-#pragma omp parallel default(none) \
-    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3)
+#pragma omp parallel default(none)                             \
+    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) \
+    num_threads(2 * omp_get_num_procs())
 #endif
 #endif
   {
@@ -356,26 +364,7 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
           tmp_cells->speeds_1_8[index].speeds_1_8[7];
     }
     // wait for all threads to complete
-#pragma omp barrier
-  }
 
-#if defined(LBM_ENV_AUTOLAB)
-#if __GNUC__ < 9
-#pragma omp parallel default(none) shared(cells, tmp_cells, inlets) \
-    num_threads(8)
-#else
-#pragma omp parallel default(none) \
-    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) num_threads(8)
-#endif
-#else
-#if __GNUC__ < 9
-#pragma omp parallel default(none) shared(cells, tmp_cells, inlets)
-#else
-#pragma omp parallel default(none) \
-    shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3)
-#endif
-#endif
-  {
     // left wall (inlet)
 #pragma omp for nowait
     for (int jj = 0; jj < params.ny; jj++) {

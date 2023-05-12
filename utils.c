@@ -220,10 +220,12 @@ int write_state(char *filename, const t_param params, t_speed *cells,
 #endif
 #else
 #if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, obstacles, fp, tmp_u)
+#pragma omp parallel for default(none) shared(cells, obstacles, fp, tmp_u) \
+    num_threads(2 * omp_get_num_procs())
 #else
-#pragma omp parallel for default(none) \
-    shared(params, cells, obstacles, fp, tmp_u)
+#pragma omp parallel for default(none)          \
+    shared(params, cells, obstacles, fp, tmp_u) \
+    num_threads(2 * omp_get_num_procs())
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {

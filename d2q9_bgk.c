@@ -64,47 +64,66 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
+    float local_density = 0.f;
+    float u_x = 0.f;
+    float u_y = 0.f;
+    float u_sq = 0.f;
+    float local_density_sq = 0.f;
+
+    float local_density_1_2 = 0.f;
+    float local_density_3_4 = 0.f;
+    float local_density_5_6 = 0.f;
+    float local_density_7_8 = 0.f;
     for (int ii = 0; ii < params.nx; ii++) {
       int index = ii + jj * params.nx;
       if (!obstacles[index]) {
         /* compute local density total */
-        float local_density = cells->speeds_0[index];
+        local_density = cells->speeds_0[index];
 
-        for (int kk = 0; kk < 8; kk++) {
-          local_density += cells->speeds_1_8[index].speeds_1_8[kk];
-        }
+        local_density_1_2 = cells->speeds_1_8[index].speeds_1_8[0] +
+                            cells->speeds_1_8[index].speeds_1_8[1];
+        local_density_3_4 = cells->speeds_1_8[index].speeds_1_8[2] +
+                            cells->speeds_1_8[index].speeds_1_8[3];
+        local_density_5_6 = cells->speeds_1_8[index].speeds_1_8[4] +
+                            cells->speeds_1_8[index].speeds_1_8[5];
+        local_density_7_8 = cells->speeds_1_8[index].speeds_1_8[6] +
+                            cells->speeds_1_8[index].speeds_1_8[7];
 
-        /* compute x velocity component */
-        float u_x = (cells->speeds_1_8[index].speeds_1_8[0] +
-                     cells->speeds_1_8[index].speeds_1_8[4] +
-                     cells->speeds_1_8[index].speeds_1_8[7] -
-                     (cells->speeds_1_8[index].speeds_1_8[2] +
-                      cells->speeds_1_8[index].speeds_1_8[5] +
-                      cells->speeds_1_8[index].speeds_1_8[6])) /
-                    local_density;
+        local_density += local_density_1_2 + local_density_3_4 +
+                         local_density_5_6 + local_density_7_8;
 
         __m256 cells_vec = _mm256_loadu_ps(cells->speeds_1_8[index].speeds_1_8);
 
-        /* compute y velocity component */
-        float u_y = (cells->speeds_1_8[index].speeds_1_8[1] +
-                     cells->speeds_1_8[index].speeds_1_8[4] +
-                     cells->speeds_1_8[index].speeds_1_8[5] -
-                     (cells->speeds_1_8[index].speeds_1_8[3] +
-                      cells->speeds_1_8[index].speeds_1_8[6] +
-                      cells->speeds_1_8[index].speeds_1_8[7])) /
-                    local_density;
+        /* compute x velocity component */
+        u_x = cells->speeds_1_8[index].speeds_1_8[0];
+        u_y = cells->speeds_1_8[index].speeds_1_8[1];
+
+        u_x -= cells->speeds_1_8[index].speeds_1_8[2];
+        u_y -= cells->speeds_1_8[index].speeds_1_8[3];
+
+        u_x += cells->speeds_1_8[index].speeds_1_8[4];
+        u_y += cells->speeds_1_8[index].speeds_1_8[4];
+
+        u_x -= cells->speeds_1_8[index].speeds_1_8[5];
+        u_y += cells->speeds_1_8[index].speeds_1_8[5];
+
+        u_x -= cells->speeds_1_8[index].speeds_1_8[6];
+        u_y -= cells->speeds_1_8[index].speeds_1_8[6];
+
+        u_x += cells->speeds_1_8[index].speeds_1_8[7];
+        u_y -= cells->speeds_1_8[index].speeds_1_8[7];
+
+        /* divide by rho */
+        u_x /= local_density;
+        u_y /= local_density;
 
         /* velocity squared */
-        float u_sq = u_x * u_x + u_y * u_y;
+        u_sq = u_x * u_x + u_y * u_y;
 
         __m256 u_vec = _mm256_setr_ps(u_x, u_y, -u_x, -u_y, u_x + u_y,
                                       -u_x + u_y, -u_x - u_y, u_x - u_y);
 
-        float local_density_sq = local_density * (1.f - u_sq / (2.f * c_sq));
-
-        tmp_cells->speeds_0[index] =
-            cells->speeds_0[index] +
-            params.omega * (w0 * local_density_sq - cells->speeds_0[index]);
+        local_density_sq = local_density * (1.f - u_sq / (2.f * c_sq));
 
         /* directional velocity components */
         __m256 local_density_vec = _mm256_set1_ps(local_density);
@@ -129,6 +148,10 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
             _mm256_add_ps(
                 cells_vec,
                 _mm256_mul_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec))));
+
+        tmp_cells->speeds_0[index] =
+            cells->speeds_0[index] +
+            params.omega * (w0 * local_density_sq - cells->speeds_0[index]);
       } else {
         /* called after collision, so taking values from scratch space
         ** mirroring, and writing into main grid */

@@ -57,12 +57,12 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #else
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
-    num_threads(2 * omp_get_num_procs())
+    num_threads(omp_get_num_procs())
 #else
 #pragma omp parallel for default(none)                                     \
     shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2, one_vec, \
                half_vec, w_vec, one_div_c_sq_vec, omega_vec)               \
-    num_threads(2 * omp_get_num_procs())
+    num_threads(omp_get_num_procs())
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
@@ -198,11 +198,10 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #else
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
-    num_threads(2 * omp_get_num_procs())
+    num_threads(omp_get_num_procs())
 #else
-#pragma omp parallel for default(none)          \
-    shared(params, cells, tmp_cells, obstacles) \
-    num_threads(2 * omp_get_num_procs())
+#pragma omp parallel for default(none) shared( \
+        params, cells, tmp_cells, obstacles) num_threads(omp_get_num_procs())
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
@@ -258,10 +257,10 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
 #else
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells) \
-    num_threads(2 * omp_get_num_procs())
+    num_threads(omp_get_num_procs())
 #else
 #pragma omp parallel for default(none) shared(params, cells, tmp_cells) \
-    num_threads(2 * omp_get_num_procs())
+    num_threads(omp_get_num_procs())
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
@@ -330,11 +329,11 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #else
 #if __GNUC__ < 9
 #pragma omp parallel default(none) shared(cells, tmp_cells, inlets) \
-    num_threads(2 * omp_get_num_procs())
+    num_threads(omp_get_num_procs())
 #else
 #pragma omp parallel default(none)                             \
     shared(params, cells, tmp_cells, inlets, cst1, cst2, cst3) \
-    num_threads(2 * omp_get_num_procs())
+    num_threads(omp_get_num_procs())
 #endif
 #endif
   {

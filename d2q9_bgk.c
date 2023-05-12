@@ -76,8 +76,10 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
     float local_density_3_4 = 0.f;
     float local_density_5_6 = 0.f;
     float local_density_7_8 = 0.f;
+
+    int index = 0;
     for (int ii = 0; ii < params.nx; ii++) {
-      int index = ii + jj * params.nx;
+      index = ii + jj * params.nx;
       if (!obstacles[index]) {
         /* compute local density total */
         local_density = cells->speeds_0[index];
@@ -205,9 +207,10 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
+    int index = 0;
     for (int ii = 0; ii < params.nx; ii++) {
       /* if the cell contains an obstacle */
-      int index = ii + jj * params.nx;
+      index = ii + jj * params.nx;
       if (obstacles[index]) {
         /* called after collision, so taking values from scratch space
         ** mirroring, and writing into main grid */
@@ -266,13 +269,19 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
   for (int jj = 0; jj < params.ny; jj++) {
     int y_n = (jj + 1) & (params.ny - 1);
     int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-    int x_e = 1;
-    int x_w = params.nx - 1;
+    int x_e = 0;
+    int x_w = 0;
+    int index = 0;
     for (int ii = 0; ii < params.nx - 1; ii++) {
+      /* determine indices of axis-direction neighbours
+      ** respecting periodic boundary conditions (wrap around) */
+      x_e = (ii + 1) & (params.nx - 1);
+      x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
+      index = ii + jj * params.nx;
+
       /* propagate densities from neighbouring cells, following
       ** appropriate directions of travel and writing into
       ** scratch space grid */
-      int index = ii + jj * params.nx;
       cells->speeds_1_8[index].speeds_1_8[4] =
           tmp_cells->speeds_1_8[x_w + y_s * params.nx]
               .speeds_1_8[4]; /* north-east */
@@ -295,10 +304,6 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
       cells->speeds_1_8[index].speeds_1_8[6] =
           tmp_cells->speeds_1_8[x_e + y_n * params.nx]
               .speeds_1_8[6]; /* south-west */
-      /* determine indices of axis-direction neighbours
-      ** respecting periodic boundary conditions (wrap around) */
-      x_e = (ii + 2) & (params.nx - 1);
-      x_w = ii;
     }
   }
 

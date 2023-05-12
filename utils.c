@@ -232,34 +232,55 @@ int write_state(char *filename, const t_param params, t_speed *cells,
     float u_x;           /* x-component of velocity in grid cell */
     float u_y;           /* y-component of velocity in grid cell */
     float u;             /* norm--root of summed squares--of u_x and u_y */
+
+    float local_density_1_2 = 0.f;
+    float local_density_3_4 = 0.f;
+    float local_density_5_6 = 0.f;
+    float local_density_7_8 = 0.f;
+
+    int index = 0;
     for (int ii = 0; ii < params.nx; ii++) {
-      if (obstacles[ii + jj * params.nx]) { /* an obstacle cell */
+      index = ii + jj * params.nx;
+      if (obstacles[index]) { /* an obstacle cell */
         u = -0.05f;
       } else { /* no obstacle */
-        local_density = cells->speeds_0[ii + jj * params.nx];
+        local_density = cells->speeds_0[index];
 
-        for (int kk = 0; kk < 8; kk++) {
-          local_density +=
-              cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[kk];
-        }
+        local_density_1_2 = cells->speeds_1_8[index].speeds_1_8[0] +
+                            cells->speeds_1_8[index].speeds_1_8[1];
+        local_density_3_4 = cells->speeds_1_8[index].speeds_1_8[2] +
+                            cells->speeds_1_8[index].speeds_1_8[3];
+        local_density_5_6 = cells->speeds_1_8[index].speeds_1_8[4] +
+                            cells->speeds_1_8[index].speeds_1_8[5];
+        local_density_7_8 = cells->speeds_1_8[index].speeds_1_8[6] +
+                            cells->speeds_1_8[index].speeds_1_8[7];
+
+        local_density += local_density_1_2 + local_density_3_4 +
+                         local_density_5_6 + local_density_7_8;
 
         /* compute x velocity component */
-        u_x = (cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[0] +
-               cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[4] +
-               cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[7] -
-               (cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[2] +
-                cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[5] +
-                cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[6])) /
-              local_density;
+        u_x = cells->speeds_1_8[index].speeds_1_8[0];
+        u_y = cells->speeds_1_8[index].speeds_1_8[1];
 
-        /* compute y velocity component */
-        u_y = (cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[1] +
-               cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[4] +
-               cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[5] -
-               (cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[3] +
-                cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[6] +
-                cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[7])) /
-              local_density;
+        u_x -= cells->speeds_1_8[index].speeds_1_8[2];
+        u_y -= cells->speeds_1_8[index].speeds_1_8[3];
+
+        u_x += cells->speeds_1_8[index].speeds_1_8[4];
+        u_y += cells->speeds_1_8[index].speeds_1_8[4];
+
+        u_x -= cells->speeds_1_8[index].speeds_1_8[5];
+        u_y += cells->speeds_1_8[index].speeds_1_8[5];
+
+        u_x -= cells->speeds_1_8[index].speeds_1_8[6];
+        u_y -= cells->speeds_1_8[index].speeds_1_8[6];
+
+        u_x += cells->speeds_1_8[index].speeds_1_8[7];
+        u_y -= cells->speeds_1_8[index].speeds_1_8[7];
+
+        /* divide by rho */
+        u_x /= local_density;
+        u_y /= local_density;
+
         /* compute norm of velocity */
         u = sqrtf((u_x * u_x) + (u_y * u_y));
       }

@@ -93,8 +93,10 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
         local_density_7_8 = cells->speeds_1_8[index].speeds_1_8[6] +
                             cells->speeds_1_8[index].speeds_1_8[7];
 
-        local_density += local_density_1_2 + local_density_3_4 +
-                         local_density_5_6 + local_density_7_8;
+        local_density_1_2 += local_density_3_4;
+        local_density_5_6 += local_density_7_8;
+
+        local_density += local_density_1_2 + local_density_5_6;
 
         __m256 cells_vec = _mm256_loadu_ps(cells->speeds_1_8[index].speeds_1_8);
 
@@ -136,22 +138,17 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
         /* equilibrium densities */
         __m256 u_sq_vec = _mm256_mul_ps(u_vec, one_div_c_sq_vec);
 
-        __m256 d_equ_vec = _mm256_mul_ps(
-            w_vec,
-            _mm256_add_ps(
-                local_density_sq_vec,
-                _mm256_mul_ps(
-                    local_density_vec,
-                    _mm256_mul_ps(
-                        u_sq_vec,
-                        _mm256_add_ps(one_vec,
-                                      _mm256_mul_ps(half_vec, u_sq_vec))))));
+        __m256 temp_vec = _mm256_mul_ps(half_vec, u_sq_vec);
+        temp_vec = _mm256_add_ps(one_vec, temp_vec);
+        temp_vec = _mm256_mul_ps(u_sq_vec, temp_vec);
+        temp_vec = _mm256_mul_ps(local_density_vec, temp_vec);
+        temp_vec = _mm256_add_ps(local_density_sq_vec, temp_vec);
+        __m256 d_equ_vec = _mm256_mul_ps(w_vec, temp_vec);
 
-        _mm256_storeu_ps(
-            tmp_cells->speeds_1_8[index].speeds_1_8,
-            _mm256_add_ps(
-                cells_vec,
-                _mm256_mul_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec))));
+        temp_vec = _mm256_sub_ps(d_equ_vec, cells_vec);
+        temp_vec = _mm256_mul_ps(omega_vec, temp_vec);
+        temp_vec = _mm256_add_ps(cells_vec, temp_vec);
+        _mm256_storeu_ps(tmp_cells->speeds_1_8[index].speeds_1_8, temp_vec);
 
         tmp_cells->speeds_0[index] =
             cells->speeds_0[index] +

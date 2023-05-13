@@ -237,14 +237,7 @@ int aligned_collision(const t_param params, aligned_t_speed* cells, aligned_t_sp
         /* called after collision, so taking values from scratch space
         ** mirroring, and writing into main grid */
         tmp_cells->stay[ii + jj*params.nx] = cells->stay[ii + jj*params.nx];
-        tmp_cells->other[ii + jj*params.nx].speeds[1 - 1] = cells->other[ii + jj*params.nx].speeds[3 - 1];
-        tmp_cells->other[ii + jj*params.nx].speeds[2 - 1] = cells->other[ii + jj*params.nx].speeds[4 - 1];
-        tmp_cells->other[ii + jj*params.nx].speeds[3 - 1] = cells->other[ii + jj*params.nx].speeds[1 - 1];
-        tmp_cells->other[ii + jj*params.nx].speeds[4 - 1] = cells->other[ii + jj*params.nx].speeds[2 - 1];
-        tmp_cells->other[ii + jj*params.nx].speeds[5 - 1] = cells->other[ii + jj*params.nx].speeds[7 - 1];
-        tmp_cells->other[ii + jj*params.nx].speeds[6 - 1] = cells->other[ii + jj*params.nx].speeds[8 - 1];
-        tmp_cells->other[ii + jj*params.nx].speeds[7 - 1] = cells->other[ii + jj*params.nx].speeds[5 - 1];
-        tmp_cells->other[ii + jj*params.nx].speeds[8 - 1] = cells->other[ii + jj*params.nx].speeds[6 - 1];
+        memcpy(cells->other[ii + jj*params.nx].speeds, tmp_cells->other[ii + jj*params.nx].speeds, sizeof(float) * 8);
       }
     }
   }

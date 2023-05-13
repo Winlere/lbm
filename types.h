@@ -10,7 +10,7 @@
 #include <immintrin.h>
 
 #define NSPEEDS         9
-#define NUM_THREADS     4
+#define NUM_THREADS     28
 
 typedef struct
 {

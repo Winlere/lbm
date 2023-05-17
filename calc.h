@@ -10,9 +10,9 @@
 int set_inlets(const t_param params, float *inlets);
 
 /* compute average velocity */
-float av_velocity(const t_param params, t_speed *cells, int *obstacles);
+float av_velocity(const t_param params, t_speed *cells, bool *obstacles);
 
 /* calculate reynold number */
-float calc_reynolds(const t_param params, t_speed *cells, int *obstacles);
+float calc_reynolds(const t_param params, t_speed *cells, bool *obstacles);
 
 #endif

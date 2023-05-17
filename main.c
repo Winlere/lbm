@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   t_param params;                   /* struct to hold parameter values */
   t_speed cells = {NULL, NULL};     /* grid containing fluid densities */
   t_speed tmp_cells = {NULL, NULL}; /* scratch space */
-  int *obstacles = NULL;   /* grid indicating which cells are blocked */
+  bool *obstacles = NULL;  /* grid indicating which cells are blocked */
   float *inlets = NULL;    /* inlet velocity */
   float *write_tmp = NULL; /* temporary write buffer */
   struct timeval timstr;   /* structure to hold elapsed time */

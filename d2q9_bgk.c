@@ -2,10 +2,10 @@
 
 /* The main processes in one step */
 int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
-              int *obstacles);
+              bool *obstacles);
 int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells);
 int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
-             int *obstacles);
+             bool *obstacles);
 int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
              float *inlets);
 
@@ -15,7 +15,7 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
 ** collision(), obstacle(), streaming() & boundary()
 */
 int timestep(const t_param params, t_speed *cells, t_speed *tmp_cells,
-             float *inlets, int *obstacles) {
+             float *inlets, bool *obstacles) {
   /* The main time overhead, you should mainly optimize these processes. */
   collision(params, cells, tmp_cells, obstacles);
   // obstacle(params, cells, tmp_cells, obstacles);
@@ -29,7 +29,7 @@ int timestep(const t_param params, t_speed *cells, t_speed *tmp_cells,
 ** the local equilibrium distribution and relaxation process
 */
 int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
-              int *obstacles) {
+              bool *obstacles) {
   const float c_sq = 1.f / 3.f; /* square of speed of sound */
   const float w0 = 4.f / 9.f;   /* weighting factor */
   const float w1 = 1.f / 9.f;   /* weighting factor */
@@ -240,7 +240,7 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 ** For obstacles, mirror their speed.
 */
 int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
-             int *obstacles) {
+             bool *obstacles) {
 /* loop over the cells in the grid */
 #if defined(LBM_ENV_AUTOLAB)
 #if __GNUC__ < 9

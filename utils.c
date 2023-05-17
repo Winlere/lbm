@@ -11,7 +11,7 @@ void die(const char *message, const int line, const char *file) {
 /* load params, allocate memory, load obstacles & initialise fluid particle
  * densities */
 int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
-               t_speed *cells_ptr, t_speed *tmp_cells_ptr, int **obstacles_ptr,
+               t_speed *cells_ptr, t_speed *tmp_cells_ptr, bool **obstacles_ptr,
                float **inlets_ptr, float **write_tmp) {
   char message[1024]; /* message buffer */
   FILE *fp;           /* file pointer */
@@ -98,7 +98,7 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
     die("cannot allocate memory for tmp_cells", __LINE__, __FILE__);
 
   /* the map of obstacles */
-  *obstacles_ptr = calloc(params->ny * params->nx, sizeof(int));
+  *obstacles_ptr = calloc(params->ny * params->nx, sizeof(bool));
   if (*obstacles_ptr == NULL)
     die("cannot allocate column memory for obstacles", __LINE__, __FILE__);
 
@@ -175,7 +175,7 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
 
 /* finalise, including freeing up allocated memory */
 int finalise(const t_param *params, t_speed *cells_ptr, t_speed *tmp_cells_ptr,
-             int **obstacles_ptr, float **inlets, float **write_tmp) {
+             bool **obstacles_ptr, float **inlets, float **write_tmp) {
   /*
   ** free up allocated memory
   */
@@ -203,7 +203,7 @@ int finalise(const t_param *params, t_speed *cells_ptr, t_speed *tmp_cells_ptr,
 
 /* write state of current grid */
 int write_state(char *filename, const t_param params, t_speed *cells,
-                int *obstacles, float *write_tmp) {
+                bool *obstacles, float *write_tmp) {
   FILE *fp; /* file pointer */
 
   fp = fopen(filename, "w");

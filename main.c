@@ -27,9 +27,10 @@ int main(int argc, char *argv[]) {
   t_param params;                   /* struct to hold parameter values */
   t_speed cells = {NULL, NULL};     /* grid containing fluid densities */
   t_speed tmp_cells = {NULL, NULL}; /* scratch space */
-  int *obstacles = NULL; /* grid indicating which cells are blocked */
-  float *inlets = NULL;  /* inlet velocity */
-  struct timeval timstr; /* structure to hold elapsed time */
+  int *obstacles = NULL;   /* grid indicating which cells are blocked */
+  float *inlets = NULL;    /* inlet velocity */
+  float *write_tmp = NULL; /* temporary write buffer */
+  struct timeval timstr;   /* structure to hold elapsed time */
   double total_time, init_time,
       comp_time; /* floating point numbers to calculate elapsed wallclock time
                   */
@@ -59,7 +60,7 @@ int main(int argc, char *argv[]) {
   init_time = total_time;
   /* initialise our data structures and load values from file */
   initialise(paramfile, obstaclefile, &params, &cells, &tmp_cells, &obstacles,
-             &inlets);
+             &inlets, &write_tmp);
   /* Set the inlet speed */
   set_inlets(params, inlets);
   /* Init time stops here */
@@ -89,7 +90,7 @@ int main(int argc, char *argv[]) {
 #ifdef VISUAL
     if (tt % 1000 == 0) {
       sprintf(buf, "%s/visual/state_%d.dat", out_dir, tt / 1000);
-      write_state(buf, params, cells, obstacles);
+      write_state(buf, params, &cells, obstacles, write_tmp);
     }
 #endif
   }
@@ -100,19 +101,19 @@ int main(int argc, char *argv[]) {
 
   /* write final state and free memory */
   sprintf(buf, "%s/final_state.dat", out_dir);
-  write_state(buf, params, &cells, obstacles);
+  write_state(buf, params, &cells, obstacles, write_tmp);
 
   /* Display Reynolds number and time */
-  printf("==done==\n");
-  printf("Reynolds number:\t\t\t%.12E\n",
-         calc_reynolds(params, &cells, obstacles));
-  printf("Average velocity:\t\t\t%.12E\n",
-         av_velocity(params, &cells, obstacles));
-  printf("Elapsed Init time:\t\t\t%.6lf (s)\n", init_time);
-  printf("Elapsed Compute time:\t\t\t%.6lf (s)\n", comp_time);
+  float av_veloc = av_velocity(params, &cells, obstacles);
+  printf(
+      "==done==\nReynolds number:\t\t\t%.12E\nAverage "
+      "velocity:\t\t\t%.12E\nElapsed Init time:\t\t\t%.6lf (s)\nElapsed "
+      "Compute time:\t\t\t%.6lf (s)\n",
+      av_veloc * (float)(params.ny) / params.viscosity, av_veloc, init_time,
+      comp_time);
 
   /* finalise */
-  finalise(&params, &cells, &tmp_cells, &obstacles, &inlets);
+  finalise(&params, &cells, &tmp_cells, &obstacles, &inlets, &write_tmp);
 
   /* total time stop */
   gettimeofday(&timstr, NULL);

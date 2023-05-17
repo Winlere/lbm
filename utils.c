@@ -12,7 +12,7 @@ void die(const char *message, const int line, const char *file) {
  * densities */
 int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
                t_speed *cells_ptr, t_speed *tmp_cells_ptr, int **obstacles_ptr,
-               float **inlets_ptr) {
+               float **inlets_ptr, float **write_tmp) {
   char message[1024]; /* message buffer */
   FILE *fp;           /* file pointer */
   int xx, yy;         /* generic array indices */
@@ -98,7 +98,7 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
     die("cannot allocate memory for tmp_cells", __LINE__, __FILE__);
 
   /* the map of obstacles */
-  *obstacles_ptr = malloc(sizeof(int) * (params->ny * params->nx));
+  *obstacles_ptr = calloc(params->ny * params->nx, sizeof(int));
   if (*obstacles_ptr == NULL)
     die("cannot allocate column memory for obstacles", __LINE__, __FILE__);
 
@@ -107,6 +107,14 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
   float w1 = params->density / 9.f;
   float w2 = params->density / 36.f;
 
+/* loop on grid to calculate the velocity of each cell */
+#if defined(LBM_ENV_AUTOLAB)
+#pragma omp parallel for default(none) shared(params, cells_ptr, w0, w1, w2) \
+    num_threads(8)
+#else
+#pragma omp parallel for default(none) shared(params, cells_ptr, w0, w1, w2) \
+    num_threads(omp_get_num_procs())
+#endif
   for (int jj = 0; jj < params->ny; jj++) {
     for (int ii = 0; ii < params->nx; ii++) {
       /* centre */
@@ -121,13 +129,6 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
       cells_ptr->speeds_1_8[ii + jj * params->nx].speeds_1_8[5] = w2;
       cells_ptr->speeds_1_8[ii + jj * params->nx].speeds_1_8[6] = w2;
       cells_ptr->speeds_1_8[ii + jj * params->nx].speeds_1_8[7] = w2;
-    }
-  }
-
-  /* first set all cells in obstacle array to zero */
-  for (int jj = 0; jj < params->ny; jj++) {
-    for (int ii = 0; ii < params->nx; ii++) {
-      (*obstacles_ptr)[ii + jj * params->nx] = 0;
     }
   }
 
@@ -167,12 +168,14 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
   /* allocate space to hold the velocity of the cells at the inlet. */
   *inlets_ptr = (float *)malloc(sizeof(float) * params->ny);
 
+  *write_tmp = (float *)malloc(sizeof(float) * params->nx * params->ny);
+
   return EXIT_SUCCESS;
 }
 
 /* finalise, including freeing up allocated memory */
 int finalise(const t_param *params, t_speed *cells_ptr, t_speed *tmp_cells_ptr,
-             int **obstacles_ptr, float **inlets) {
+             int **obstacles_ptr, float **inlets, float **write_tmp) {
   /*
   ** free up allocated memory
   */
@@ -192,12 +195,15 @@ int finalise(const t_param *params, t_speed *cells_ptr, t_speed *tmp_cells_ptr,
   free(*inlets);
   *inlets = NULL;
 
+  free(*write_tmp);
+  *write_tmp = NULL;
+
   return EXIT_SUCCESS;
 }
 
 /* write state of current grid */
 int write_state(char *filename, const t_param params, t_speed *cells,
-                int *obstacles) {
+                int *obstacles, float *write_tmp) {
   FILE *fp; /* file pointer */
 
   fp = fopen(filename, "w");
@@ -207,24 +213,23 @@ int write_state(char *filename, const t_param params, t_speed *cells,
     die("could not open file output file", __LINE__, __FILE__);
   }
 
-  float *tmp_u = (float *)malloc(sizeof(float) * params.nx * params.ny);
-
   /* loop on grid to calculate the velocity of each cell */
 #if defined(LBM_ENV_AUTOLAB)
 #if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, obstacles, fp, tmp_u) \
+#pragma omp parallel for default(none) shared(cells, obstacles, fp, write_tmp) \
     num_threads(8)
 #else
 #pragma omp parallel for default(none) \
-    shared(params, cells, obstacles, fp, tmp_u) num_threads(8)
+    shared(params, cells, obstacles, fp, write_tmp) num_threads(8)
 #endif
 #else
 #if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, obstacles, fp, tmp_u) \
+#pragma omp parallel for default(none) shared(cells, obstacles, fp, write_tmp) \
     num_threads(omp_get_num_procs())
 #else
-#pragma omp parallel for default(none) shared( \
-        params, cells, obstacles, fp, tmp_u) num_threads(omp_get_num_procs())
+#pragma omp parallel for default(none)              \
+    shared(params, cells, obstacles, fp, write_tmp) \
+    num_threads(omp_get_num_procs())
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
@@ -285,7 +290,7 @@ int write_state(char *filename, const t_param params, t_speed *cells,
         u = sqrtf((u_x * u_x) + (u_y * u_y));
       }
 
-      tmp_u[ii + jj * params.nx] = u;
+      write_tmp[ii + jj * params.nx] = u;
     }
   }
 
@@ -293,14 +298,12 @@ int write_state(char *filename, const t_param params, t_speed *cells,
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
       /* write to file */
-      fprintf(fp, "%d %d %.12E\n", ii, jj, tmp_u[ii + jj * params.nx]);
+      fprintf(fp, "%d %d %.12E\n", ii, jj, write_tmp[ii + jj * params.nx]);
     }
   }
 
   /* close file */
   fclose(fp);
-
-  free(tmp_u);
 
   return EXIT_SUCCESS;
 }

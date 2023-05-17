@@ -82,7 +82,7 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
     die("cannot allocate memory for cells", __LINE__, __FILE__);
 
   cells_ptr->speeds_1_8 = (t_speed_1_8 *)aligned_alloc(
-      32, sizeof(t_speed_1_8) * (params->ny * params->nx));
+      64, sizeof(t_speed_1_8) * (params->ny * params->nx));
   if (cells_ptr->speeds_1_8 == NULL)
     die("cannot allocate memory for cells", __LINE__, __FILE__);
 
@@ -93,7 +93,7 @@ int initialise(const char *paramfile, const char *obstaclefile, t_param *params,
     die("cannot allocate memory for tmp_cells", __LINE__, __FILE__);
 
   tmp_cells_ptr->speeds_1_8 = (t_speed_1_8 *)aligned_alloc(
-      32, sizeof(t_speed_1_8) * (params->ny * params->nx));
+      64, sizeof(t_speed_1_8) * (params->ny * params->nx));
   if (tmp_cells_ptr->speeds_1_8 == NULL)
     die("cannot allocate memory for tmp_cells", __LINE__, __FILE__);
 

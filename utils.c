@@ -378,7 +378,7 @@ int write_state_aligned(char *filename, const t_param params, aligned_t_speed ce
       }
 
       /* write to file */
-      fprintf(fp, "%d %d %.6E\n", ii, jj, u);
+      fprintf(fp, "%d %d %.3E\n", ii, jj, u);
     }
   }
   

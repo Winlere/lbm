@@ -1,5 +1,7 @@
 #include "types.h"
 #include "utils.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 
@@ -327,10 +329,8 @@ int initialise_aligned(const char* paramfile, const char* obstaclefile, t_param*
 
 int write_state_aligned(char *filename, const t_param params, aligned_t_speed cells, int *obstacles){
     FILE* fp;                    /* file pointer */
-  float local_density;         /* per grid cell sum of densities */
-  float u_x;                   /* x-component of velocity in grid cell */
-  float u_y;                   /* y-component of velocity in grid cell */
-  float u;                     /* norm--root of summed squares--of u_x and u_y */
+  
+  char*temp = malloc(sizeof(char) * params.nx * params.ny * 16);
 
   fp = fopen(filename, "w");
 
@@ -341,8 +341,13 @@ int write_state_aligned(char *filename, const t_param params, aligned_t_speed ce
   }
 
   /* loop on grid to calculate the velocity of each cell */
+#pragma omp parallel for num_threads(NUM_THREADS)
   for (int jj = 0; jj < params.ny; jj++)
   {
+    float local_density;         /* per grid cell sum of densities */
+    float u_x;                   /* x-component of velocity in grid cell */
+    float u_y;                   /* y-component of velocity in grid cell */
+    float u;                     /* norm--root of summed squares--of u_x and u_y */
     for (int ii = 0; ii < params.nx; ii++)
     {
       if (obstacles[ii + jj*params.nx])
@@ -377,15 +382,17 @@ int write_state_aligned(char *filename, const t_param params, aligned_t_speed ce
         /* compute norm of velocity */
         u = sqrtf((u_x * u_x) + (u_y * u_y));
       }
-
+      sprintf(temp + (ii + jj*params.nx) * 16, "%.3E", u);
       /* write to file */
-      fprintf(fp, "%d %d %.3E\n", ii, jj, u);
     }
   }
   
   /* close file */
+  for (int jj = 0; jj < params.ny; jj++)
+    for (int ii = 0; ii < params.nx; ii++)
+      fprintf(fp, "%d %d %s\n", ii, jj, temp + (ii + jj*params.nx) * 16);
   fclose(fp);
-
+  free(temp);
   return EXIT_SUCCESS;
 }
 

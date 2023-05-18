@@ -192,7 +192,7 @@ int aligned_collision(const t_param params, aligned_t_speed* cells, aligned_t_sp
   const __m256 omega_vec = _mm256_set1_ps(params.omega);
   const __m256 c_sq_n1 = _mm256_set1_ps(1 / c_sq);
   const __m256 c_sq_n2_2 = _mm256_set1_ps(1. / 2 / c_sq / c_sq);
-  const int jj_block_size = 32;
+  const int jj_block_size = 64;
   const int ii_block_size = 256;
   /* loop over the cells in the grid
   ** the collision step is called before

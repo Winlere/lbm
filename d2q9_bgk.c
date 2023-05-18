@@ -132,13 +132,15 @@ int collision(const t_param params, t_speed* cells, t_speed* tmp_cells, int* obs
         const __m256 t0 = _mm256_set1_ps(c0);
         const __m256 t1 = _mm256_set1_ps(local_density / c_sq);
         const __m256 t2 = _mm256_set1_ps(local_density / (2 * c_sq * c_sq));
-        const __m256 d_equ_vec = _mm256_mul_ps(w_vec,_mm256_add_ps(t0,_mm256_mul_ps(x,_mm256_add_ps(t1,_mm256_mul_ps(x,t2)))));
+        const __m256 d_equ_vec = _mm256_mul_ps(w_vec,_mm256_fmadd_ps(x, _mm256_fmadd_ps(x, t2 , t1) , t0));
+        
         
         /* relaxation step */
 
         // const __m256 cells_vec = _mm256_loadu_ps(cells[ii + jj*params.nx].speeds + 1); 
         const __m256 omega_vec = _mm256_set1_ps(params.omega);
-        const __m256 temp_vec2 = _mm256_add_ps(cells_vec, _mm256_mul_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec)));
+        const __m256 temp_vec2 = _mm256_fmadd_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec), cells_vec);
+        
         _mm256_storeu_ps(tmp_cells[ii + jj*params.nx].speeds + 1, temp_vec2);
       }
     }
@@ -188,6 +190,8 @@ int aligned_collision(const t_param params, aligned_t_speed* cells, aligned_t_sp
   const float w2 = 1.f / 36.f;  /* weighting factor */
   const __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
   const __m256 omega_vec = _mm256_set1_ps(params.omega);
+  const __m256 c_sq_n1 = _mm256_set1_ps(1 / c_sq);
+  const __m256 c_sq_n2_2 = _mm256_set1_ps(1. / 2 / c_sq / c_sq);
   /* loop over the cells in the grid
   ** the collision step is called before
   ** the streaming step and so values of interest
@@ -225,13 +229,21 @@ int aligned_collision(const t_param params, aligned_t_speed* cells, aligned_t_sp
 
         u_sq = u_x * u_x + u_y * u_y; 
         c0 = local_density * (1.f - u_sq / (2.f * c_sq));
-        cells_vec = _mm256_loadu_ps(cells -> other[ii + jj*params.nx].speeds);
+        const __m256 ld = _mm256_set1_ps(local_density);
+        t0 = _mm256_set1_ps((1.f - u_sq / (2.f * c_sq)));
+        
         x = _mm256_setr_ps(u_x,u_y,-u_x,-u_y,u_x+u_y,-u_x+u_y,-u_x-u_y,u_x-u_y);
-        t0 = _mm256_set1_ps(c0);
-        t1 = _mm256_set1_ps(local_density / c_sq);
-        t2 = _mm256_set1_ps(local_density / (2 * c_sq * c_sq));
-        d_equ_vec = _mm256_mul_ps(w_vec,_mm256_add_ps(t0,_mm256_mul_ps(x,_mm256_add_ps(t1,_mm256_mul_ps(x,t2)))));
-        temp_vec2 = _mm256_add_ps(cells_vec, _mm256_mul_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec)));
+        cells_vec = _mm256_loadu_ps(cells -> other[ii + jj*params.nx].speeds);
+        
+        t0 = t0;
+        t1 = c_sq_n1; 
+        t2 = c_sq_n2_2;
+        
+        // d_equ_vec = _mm256_mul_ps(w_vec,_mm256_add_ps(t0,_mm256_mul_ps(x,_mm256_add_ps(t1,_mm256_mul_ps(x,t2)))));
+        d_equ_vec = _mm256_mul_ps(_mm256_mul_ps(w_vec, ld),_mm256_fmadd_ps(x, _mm256_fmadd_ps(x, t2 , t1) , t0));
+        
+        // temp_vec2 = _mm256_add_ps(cells_vec, _mm256_mul_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec)));
+        temp_vec2 = _mm256_fmadd_ps(omega_vec, _mm256_sub_ps(d_equ_vec, cells_vec), cells_vec);
         _mm256_storeu_ps(ret, temp_vec2);
         tmp_cells->stay[ii + jj*params.nx] = (1-params.omega) * cells->stay[ii + jj*params.nx] + c0 * w0 * params.omega;
       }else{

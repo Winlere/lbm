@@ -192,17 +192,20 @@ int aligned_collision(const t_param params, aligned_t_speed* cells, aligned_t_sp
   const __m256 omega_vec = _mm256_set1_ps(params.omega);
   const __m256 c_sq_n1 = _mm256_set1_ps(1 / c_sq);
   const __m256 c_sq_n2_2 = _mm256_set1_ps(1. / 2 / c_sq / c_sq);
+  const int jj_block_size = 32;
+  const int ii_block_size = 256;
   /* loop over the cells in the grid
   ** the collision step is called before
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
-
+  for(int jj_block = 0; jj_block + jj_block_size <= params.ny; jj_block += jj_block_size)
+  for(int ii_block = 0; ii_block + ii_block_size <= params.nx; ii_block += ii_block_size)
 #pragma omp parallel for num_threads(NUM_THREADS)
-  for (int jj = 0; jj < params.ny; jj++)
+  for (int jj = jj_block; jj < jj_block + jj_block_size; jj++)
   {
     float local_density, u_x, u_y, u_sq,c0;
     float ret[8];
-  for (int ii = 0; ii < params.nx; ii++)  
+  for (int ii = ii_block; ii < ii_block + ii_block_size; ii++)
     {
       if (!obstacles[ii + jj*params.nx]){
         /* compute local density total */

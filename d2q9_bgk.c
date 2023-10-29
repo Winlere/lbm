@@ -78,9 +78,30 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
     float local_density_7_8 = 0.f;
 
     int index = 0;
+    int y_n = 0;
+    int y_s = 0;
+    int x_e = 0;
+    int x_w = 0;
+    t_speed_0 tmp_cell_0 = 0.f;
+    t_speed_1_8 tmp_cell_1_8 = {};
     for (int ii = 0; ii < params.nx; ii++) {
       index = ii + jj * params.nx;
-      if (!obstacles[index]) {
+      x_e = (ii + 1) & (params.nx - 1);
+      x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
+      if (obstacles[index]) {
+        /* called after collision, so taking values from scratch space
+        ** mirroring, and writing into main grid */
+        tmp_cell_0 = cells->speeds_0[index];
+
+        tmp_cell_1_8.speeds_1_8[0] = cells->speeds_1_8[index].speeds_1_8[2];
+        tmp_cell_1_8.speeds_1_8[1] = cells->speeds_1_8[index].speeds_1_8[3];
+        tmp_cell_1_8.speeds_1_8[2] = cells->speeds_1_8[index].speeds_1_8[0];
+        tmp_cell_1_8.speeds_1_8[3] = cells->speeds_1_8[index].speeds_1_8[1];
+        tmp_cell_1_8.speeds_1_8[4] = cells->speeds_1_8[index].speeds_1_8[6];
+        tmp_cell_1_8.speeds_1_8[5] = cells->speeds_1_8[index].speeds_1_8[7];
+        tmp_cell_1_8.speeds_1_8[6] = cells->speeds_1_8[index].speeds_1_8[4];
+        tmp_cell_1_8.speeds_1_8[7] = cells->speeds_1_8[index].speeds_1_8[5];
+      } else {
         /* compute local density total */
         local_density = cells->speeds_0[index];
 
@@ -148,35 +169,70 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
         temp_vec = _mm256_sub_ps(d_equ_vec, cells_vec);
         temp_vec = _mm256_mul_ps(omega_vec, temp_vec);
         temp_vec = _mm256_add_ps(cells_vec, temp_vec);
-        _mm256_storeu_ps(tmp_cells->speeds_1_8[index].speeds_1_8, temp_vec);
+        _mm256_storeu_ps(tmp_cell_1_8.speeds_1_8, temp_vec);
 
-        tmp_cells->speeds_0[index] =
+        tmp_cell_0 =
             cells->speeds_0[index] +
             params.omega * (w0 * local_density_sq - cells->speeds_0[index]);
-      } else {
-        /* called after collision, so taking values from scratch space
-        ** mirroring, and writing into main grid */
-        tmp_cells->speeds_0[index] = cells->speeds_0[index];
+      }
 
-        tmp_cells->speeds_1_8[index].speeds_1_8[0] =
-            cells->speeds_1_8[index].speeds_1_8[2];
-        tmp_cells->speeds_1_8[index].speeds_1_8[1] =
-            cells->speeds_1_8[index].speeds_1_8[3];
-        tmp_cells->speeds_1_8[index].speeds_1_8[2] =
-            cells->speeds_1_8[index].speeds_1_8[0];
-        tmp_cells->speeds_1_8[index].speeds_1_8[3] =
-            cells->speeds_1_8[index].speeds_1_8[1];
-        tmp_cells->speeds_1_8[index].speeds_1_8[4] =
-            cells->speeds_1_8[index].speeds_1_8[6];
-        tmp_cells->speeds_1_8[index].speeds_1_8[5] =
-            cells->speeds_1_8[index].speeds_1_8[7];
-        tmp_cells->speeds_1_8[index].speeds_1_8[6] =
-            cells->speeds_1_8[index].speeds_1_8[4];
+      tmp_cells->speeds_0[index] = tmp_cell_0;
+
+      tmp_cells->speeds_1_8[x_e + jj * params.nx].speeds_1_8[0] =
+          tmp_cell_1_8.speeds_1_8[0]; /* east */
+      tmp_cells->speeds_1_8[x_w + jj * params.nx].speeds_1_8[2] =
+          tmp_cell_1_8.speeds_1_8[2]; /* west */
+
+      if (jj == 0) {
+        y_s = 1;
         tmp_cells->speeds_1_8[index].speeds_1_8[7] =
-            cells->speeds_1_8[index].speeds_1_8[5];
+            tmp_cell_1_8.speeds_1_8[5]; /* north-west */
+        tmp_cells->speeds_1_8[index].speeds_1_8[3] =
+            tmp_cell_1_8.speeds_1_8[1]; /* north */
+        tmp_cells->speeds_1_8[index].speeds_1_8[6] =
+            tmp_cell_1_8.speeds_1_8[4]; /* north-east */
+
+        tmp_cells->speeds_1_8[x_w + y_s * params.nx].speeds_1_8[6] =
+            tmp_cell_1_8.speeds_1_8[6]; /* south-west */
+        tmp_cells->speeds_1_8[ii + y_s * params.nx].speeds_1_8[3] =
+            tmp_cell_1_8.speeds_1_8[3]; /* south */
+        tmp_cells->speeds_1_8[x_e + y_s * params.nx].speeds_1_8[7] =
+            tmp_cell_1_8.speeds_1_8[7]; /* south-east */
+      } else if (jj == params.ny - 1) {
+        y_n = params.ny - 2;
+        tmp_cells->speeds_1_8[x_w + y_n * params.nx].speeds_1_8[5] =
+            tmp_cell_1_8.speeds_1_8[5]; /* north-west */
+        tmp_cells->speeds_1_8[ii + y_n * params.nx].speeds_1_8[1] =
+            tmp_cell_1_8.speeds_1_8[1]; /* north */
+        tmp_cells->speeds_1_8[x_e + y_n * params.nx].speeds_1_8[4] =
+            tmp_cell_1_8.speeds_1_8[4]; /* north-east */
+
+        tmp_cells->speeds_1_8[index].speeds_1_8[4] =
+            tmp_cell_1_8.speeds_1_8[6]; /* south-west */
+        tmp_cells->speeds_1_8[index].speeds_1_8[1] =
+            tmp_cell_1_8.speeds_1_8[3]; /* south */
+        tmp_cells->speeds_1_8[index].speeds_1_8[5] =
+            tmp_cell_1_8.speeds_1_8[7]; /* south-east */
+      } else {
+        y_s = jj + 1;
+        y_n = jj - 1;
+        tmp_cells->speeds_1_8[x_w + y_n * params.nx].speeds_1_8[5] =
+            tmp_cell_1_8.speeds_1_8[5]; /* north-west */
+        tmp_cells->speeds_1_8[ii + y_n * params.nx].speeds_1_8[1] =
+            tmp_cell_1_8.speeds_1_8[1]; /* north */
+        tmp_cells->speeds_1_8[x_e + y_n * params.nx].speeds_1_8[4] =
+            tmp_cell_1_8.speeds_1_8[4]; /* north-east */
+
+        tmp_cells->speeds_1_8[x_w + y_s * params.nx].speeds_1_8[6] =
+            tmp_cell_1_8.speeds_1_8[6]; /* south-west */
+        tmp_cells->speeds_1_8[ii + y_s * params.nx].speeds_1_8[3] =
+            tmp_cell_1_8.speeds_1_8[3]; /* south */
+        tmp_cells->speeds_1_8[x_e + y_s * params.nx].speeds_1_8[7] =
+            tmp_cell_1_8.speeds_1_8[7]; /* south-east */
       }
     }
   }
+
   return EXIT_SUCCESS;
 }
 
@@ -235,8 +291,8 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
   return EXIT_SUCCESS;
 }
 
-static inline void swap_ptrf(float **a, float **b) {
-  float *tmp = *a;
+static inline void swap_ptr(void **a, void **b) {
+  void *tmp = *a;
   *a = *b;
   *b = tmp;
 }
@@ -245,65 +301,8 @@ static inline void swap_ptrf(float **a, float **b) {
 ** Particles flow to the corresponding cell according to their speed direaction.
 */
 int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
-  swap_ptrf(&cells->speeds_0, &tmp_cells->speeds_0);
-/* loop over _all_ cells */
-#if defined(LBM_ENV_AUTOLAB)
-#if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, tmp_cells) num_threads(8)
-#else
-#pragma omp parallel for default(none) shared(params, cells, tmp_cells) \
-    num_threads(8)
-#endif
-#else
-#if __GNUC__ < 9
-#pragma omp parallel for default(none) shared(cells, tmp_cells) \
-    num_threads(omp_get_num_procs())
-#else
-#pragma omp parallel for default(none) shared(params, cells, tmp_cells) \
-    num_threads(omp_get_num_procs())
-#endif
-#endif
-  for (int jj = 0; jj < params.ny; jj++) {
-    int y_n = (jj + 1) & (params.ny - 1);
-    int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-    int x_e = 0;
-    int x_w = 0;
-    int index = 0;
-    for (int ii = 0; ii < params.nx - 1; ii++) {
-      /* determine indices of axis-direction neighbours
-      ** respecting periodic boundary conditions (wrap around) */
-      x_e = (ii + 1) & (params.nx - 1);
-      x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
-      index = ii + jj * params.nx;
-
-      /* propagate densities from neighbouring cells, following
-      ** appropriate directions of travel and writing into
-      ** scratch space grid */
-      cells->speeds_1_8[index].speeds_1_8[4] =
-          tmp_cells->speeds_1_8[x_w + y_s * params.nx]
-              .speeds_1_8[4]; /* north-east */
-      cells->speeds_1_8[index].speeds_1_8[1] =
-          tmp_cells->speeds_1_8[ii + y_s * params.nx].speeds_1_8[1]; /* south */
-      cells->speeds_1_8[index].speeds_1_8[5] =
-          tmp_cells->speeds_1_8[x_e + y_s * params.nx]
-              .speeds_1_8[5]; /* north-west */
-
-      cells->speeds_1_8[index].speeds_1_8[0] =
-          tmp_cells->speeds_1_8[x_w + jj * params.nx].speeds_1_8[0]; /* east */
-      cells->speeds_1_8[index].speeds_1_8[2] =
-          tmp_cells->speeds_1_8[x_e + jj * params.nx].speeds_1_8[2]; /* west */
-
-      cells->speeds_1_8[index].speeds_1_8[7] =
-          tmp_cells->speeds_1_8[x_w + y_n * params.nx]
-              .speeds_1_8[7]; /* south-east */
-      cells->speeds_1_8[index].speeds_1_8[3] =
-          tmp_cells->speeds_1_8[ii + y_n * params.nx].speeds_1_8[3]; /* south */
-      cells->speeds_1_8[index].speeds_1_8[6] =
-          tmp_cells->speeds_1_8[x_e + y_n * params.nx]
-              .speeds_1_8[6]; /* south-west */
-    }
-  }
-
+  swap_ptr((void **)&cells->speeds_0, (void **)&tmp_cells->speeds_0);
+  swap_ptr((void **)&cells->speeds_1_8, (void **)&tmp_cells->speeds_1_8);
   return EXIT_SUCCESS;
 }
 
@@ -339,33 +338,6 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #endif
 #endif
   {
-    // top wall (bounce)
-#pragma omp for nowait
-    for (int ii = 0; ii < params.nx; ii++) {
-      int jj = params.ny - 1;
-      int index = ii + jj * params.nx;
-      cells->speeds_1_8[index].speeds_1_8[3] =
-          tmp_cells->speeds_1_8[index].speeds_1_8[1];
-      cells->speeds_1_8[index].speeds_1_8[6] =
-          tmp_cells->speeds_1_8[index].speeds_1_8[4];
-      cells->speeds_1_8[index].speeds_1_8[7] =
-          tmp_cells->speeds_1_8[index].speeds_1_8[5];
-    }
-
-    // bottom wall (bounce)
-#pragma omp for nowait
-    for (int ii = 0; ii < params.nx; ii++) {
-      int jj = 0;
-      int index = ii + jj * params.nx;
-      cells->speeds_1_8[index].speeds_1_8[1] =
-          tmp_cells->speeds_1_8[index].speeds_1_8[3];
-      cells->speeds_1_8[index].speeds_1_8[4] =
-          tmp_cells->speeds_1_8[index].speeds_1_8[6];
-      cells->speeds_1_8[index].speeds_1_8[5] =
-          tmp_cells->speeds_1_8[index].speeds_1_8[7];
-    }
-    // wait for all threads to complete
-
     // left wall (inlet)
 #pragma omp for nowait
     for (int jj = 0; jj < params.ny; jj++) {

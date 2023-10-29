@@ -115,7 +115,19 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
                                               _mm256_set1_ps(c_sq))))))));
 
         /* relaxation step */
-        for (int kk = 0; kk < NSPEEDS; kk++) {
+        for (int kk = 0; kk + 8 < NSPEEDS; kk += 8) {
+          __m256 d_equ_vec = _mm256_loadu_ps(d_equ + kk);
+          __m256 cells_vec =
+              _mm256_loadu_ps(cells[ii + jj * params.nx].speeds + kk);
+          _mm256_storeu_ps(
+              tmp_cells[ii + jj * params.nx].speeds + kk,
+              _mm256_add_ps(
+                  cells_vec,
+                  _mm256_mul_ps(_mm256_set1_ps(params.omega),
+                                _mm256_sub_ps(d_equ_vec, cells_vec))));
+        }
+
+        for (int kk = NSPEEDS - (NSPEEDS % 8); kk < NSPEEDS; kk++) {
           tmp_cells[ii + jj * params.nx].speeds[kk] =
               cells[ii + jj * params.nx].speeds[kk] +
               params.omega *

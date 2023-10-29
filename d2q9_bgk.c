@@ -35,6 +35,12 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
   const float w1 = 1.f / 9.f;   /* weighting factor */
   const float w2 = 1.f / 36.f;  /* weighting factor */
 
+  const __m256 one_vec = _mm256_set1_ps(1.f);
+  const __m256 half_vec = _mm256_set1_ps(0.5f);
+  const __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
+  const __m256 c_sq_vec = _mm256_set1_ps(c_sq);
+  const __m256 omega_vec = _mm256_set1_ps(params.omega);
+
   /* loop over the cells in the grid
   ** the collision step is called before
   ** the streaming step and so values of interest
@@ -44,15 +50,17 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 #pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles) \
     num_threads(4)
 #else
-#pragma omp parallel for default(none) shared( \
-        params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2) num_threads(4)
+#pragma omp parallel for default(none)                                     \
+    shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2, one_vec, \
+               half_vec, w_vec, c_sq_vec, omega_vec) num_threads(4)
 #endif
 #else
 #if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles)
 #else
-#pragma omp parallel for default(none) \
-    shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2)
+#pragma omp parallel for default(none)                                     \
+    shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2, one_vec, \
+               half_vec, w_vec, c_sq_vec, omega_vec)
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
@@ -74,7 +82,6 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
                       cells[ii + jj * params.nx].speeds[7])) /
                     local_density;
 
-        __m256 w_vec = _mm256_setr_ps(w1, w1, w1, w1, w2, w2, w2, w2);
         __m256 cells_vec =
             _mm256_loadu_ps(cells[ii + jj * params.nx].speeds + 1);
 
@@ -90,6 +97,9 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
         /* velocity squared */
         float u_sq = u_x * u_x + u_y * u_y;
 
+        __m256 u_vec = _mm256_setr_ps(u_x, u_y, -u_x, -u_y, u_x + u_y,
+                                      -u_x + u_y, -u_x - u_y, u_x - u_y);
+
         float local_density_sq = local_density * (1.f - u_sq / (2.f * c_sq));
 
         tmp_cells[ii + jj * params.nx].speeds[0] =
@@ -98,27 +108,23 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
                 (w0 * local_density_sq - cells[ii + jj * params.nx].speeds[0]);
 
         /* directional velocity components */
-        __m256 u_sq_vec = _mm256_div_ps(
-            _mm256_add_ps(
-                _mm256_setr_ps(u_x, u_y, -u_x, -u_y, u_x, -u_x, -u_x, u_x),
-                _mm256_setr_ps(0, 0, 0, 0, u_y, u_y, -u_y, -u_y)),
-            _mm256_set1_ps(c_sq));
-
-        /* equilibrium densities */
         __m256 local_density_vec = _mm256_set1_ps(local_density);
         __m256 local_density_sq_vec = _mm256_set1_ps(local_density_sq);
-        __m256 d_equ_vec = _mm256_mul_ps(
-            w_vec, _mm256_add_ps(
-                       local_density_sq_vec,
-                       _mm256_mul_ps(
-                           local_density_vec,
-                           _mm256_mul_ps(
-                               u_sq_vec,
-                               _mm256_add_ps(_mm256_set1_ps(1.f),
-                                             _mm256_mul_ps(_mm256_set1_ps(.5f),
-                                                           u_sq_vec))))));
 
-        __m256 omega_vec = _mm256_set1_ps(params.omega);
+        /* equilibrium densities */
+        __m256 u_sq_vec = _mm256_div_ps(u_vec, c_sq_vec);
+
+        __m256 d_equ_vec = _mm256_mul_ps(
+            w_vec,
+            _mm256_add_ps(
+                local_density_sq_vec,
+                _mm256_mul_ps(
+                    local_density_vec,
+                    _mm256_mul_ps(
+                        u_sq_vec,
+                        _mm256_add_ps(one_vec,
+                                      _mm256_mul_ps(half_vec, u_sq_vec))))));
+
         _mm256_storeu_ps(
             tmp_cells[ii + jj * params.nx].speeds + 1,
             _mm256_add_ps(
@@ -320,10 +326,10 @@ int boundary(const t_param params, t_speed *cells, t_speed *tmp_cells,
       float local_density = (cells[ii + jj * params.nx].speeds[0] +
                              cells[ii + jj * params.nx].speeds[2] +
                              cells[ii + jj * params.nx].speeds[4] +
-                             2.0 * cells[ii + jj * params.nx].speeds[3] +
-                             2.0 * cells[ii + jj * params.nx].speeds[6] +
-                             2.0 * cells[ii + jj * params.nx].speeds[7]) /
-                            (1.0 - inlets[jj]);
+                             2.f * cells[ii + jj * params.nx].speeds[3] +
+                             2.f * cells[ii + jj * params.nx].speeds[6] +
+                             2.f * cells[ii + jj * params.nx].speeds[7]) /
+                            (1.f - inlets[jj]);
 
       cells[ii + jj * params.nx].speeds[1] =
           cells[ii + jj * params.nx].speeds[3] +

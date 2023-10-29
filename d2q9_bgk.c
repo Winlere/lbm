@@ -217,13 +217,11 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
 #endif
 #endif
   for (int jj = 0; jj < params.ny; jj++) {
-    for (int ii = 0; ii < params.nx; ii++) {
-      /* determine indices of axis-direction neighbours
-      ** respecting periodic boundary conditions (wrap around) */
-      int y_n = (jj + 1) % params.ny;
-      int x_e = (ii + 1) % params.nx;
-      int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
-      int x_w = (ii == 0) ? (params.nx - 1) : (ii - 1);
+    int y_n = (jj + 1) % params.ny;
+    int y_s = (jj == 0) ? (params.ny - 1) : (jj - 1);
+    int x_e = 1;
+    int x_w = params.nx - 1;
+    for (int ii = 0; ii < params.nx - 1; ii++) {
       /* propagate densities from neighbouring cells, following
       ** appropriate directions of travel and writing into
       ** scratch space grid */
@@ -249,6 +247,10 @@ int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
       cells->speeds_1_8[ii + jj * params.nx].speeds_1_8[6] =
           tmp_cells->speeds_1_8[x_e + y_n * params.nx]
               .speeds_1_8[6]; /* south-west */
+      /* determine indices of axis-direction neighbours
+      ** respecting periodic boundary conditions (wrap around) */
+      x_e = (ii + 2) % params.nx;
+      x_w = ii;
     }
   }
 

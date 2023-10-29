@@ -2,7 +2,7 @@
 
 This repository contains the code for optimizing a numerical simulation of Computational Fluid Dynamics (CFD). The simulation is based on the Lattice Boltzmann Method (LBM), a relatively recent technique which consists in replacing the Navier-Stokes equations with a discretization of the Boltzmann equation in order to simulate the complex behavior of fluids using streaming and collision (relaxation) processes. 
 
-![](./visual.gif)
+![](./assets/visual.gif)
 
 ## Installation
 

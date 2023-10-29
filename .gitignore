@@ -65,3 +65,6 @@ prof
 
 # VSCode
 /.vscode/
+
+# Assets
+!/assets/**

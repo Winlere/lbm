@@ -39,9 +39,12 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
   ** the collision step is called before
   ** the streaming step and so values of interest
   ** are in the scratch-space grid */
-
+#if __GNUC__ < 9
+#pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles)
+#else
 #pragma omp parallel for default(none) \
-    shared(cells, tmp_cells, obstacles)
+    shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2)
+#endif
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
       if (!obstacles[ii + jj * params.nx]) {
@@ -145,8 +148,12 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
 int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
              int *obstacles) {
   /* loop over the cells in the grid */
+#if __GNUC__ < 9
+#pragma omp parallel for default(none) shared(cells, tmp_cells, obstacles)
+#else
 #pragma omp parallel for default(none) \
-    shared(cells, tmp_cells, obstacles)
+    shared(params, cells, tmp_cells, obstacles)
+#endif
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
       /* if the cell contains an obstacle */
@@ -182,7 +189,11 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
 */
 int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
   /* loop over _all_ cells */
+#if __GNUC__ < 9
 #pragma omp parallel for default(none) shared(cells, tmp_cells)
+#else
+#pragma omp parallel for default(none) shared(params, cells, tmp_cells)
+#endif
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
       /* determine indices of axis-direction neighbours

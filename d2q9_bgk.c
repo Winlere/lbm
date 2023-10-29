@@ -41,7 +41,7 @@ int collision(const t_param params, t_speed *cells, t_speed *tmp_cells,
   ** are in the scratch-space grid */
 
 #pragma omp parallel for default(none) \
-    shared(params, cells, tmp_cells, obstacles, c_sq, w0, w1, w2)
+    shared(cells, tmp_cells, obstacles)
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
       if (!obstacles[ii + jj * params.nx]) {
@@ -146,7 +146,7 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
              int *obstacles) {
   /* loop over the cells in the grid */
 #pragma omp parallel for default(none) \
-    shared(params, cells, tmp_cells, obstacles)
+    shared(cells, tmp_cells, obstacles)
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
       /* if the cell contains an obstacle */
@@ -182,7 +182,7 @@ int obstacle(const t_param params, t_speed *cells, t_speed *tmp_cells,
 */
 int streaming(const t_param params, t_speed *cells, t_speed *tmp_cells) {
   /* loop over _all_ cells */
-#pragma omp parallel for default(none) shared(params, cells, tmp_cells)
+#pragma omp parallel for default(none) shared(cells, tmp_cells)
   for (int jj = 0; jj < params.ny; jj++) {
     for (int ii = 0; ii < params.nx; ii++) {
       /* determine indices of axis-direction neighbours
